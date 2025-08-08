@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adjust Session Time - Tech Timer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4CAF50; /* Calm green */
+            --secondary-color: #FFC107; /* Bright yellow */
+            --accent-color: #3D5AFE; /* Bold blue */
+            --danger-color: #f44336; /* Softer red */
+            --background-color: #F0F4F8;
+            --text-color: #333;
+            --card-background: #ffffff;
+            --white-color: #ffffff;
+        }
+        body { font-family: 'Fredoka', sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; }
+        header { background-color: var(--primary-color); color: var(--white-color); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        header h1 { margin: 0; }
+        .back-link { color: var(--white-color); background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 20px; text-decoration: none; font-weight: 500; transition: background 0.2s; }
+        .back-link:hover { background: rgba(255,255,255,0.4); }
+        main { display: flex; flex-direction: column; padding: 1.5rem; gap: 1.5rem; }
+        @media(min-width: 900px) { main { flex-direction: row; align-items: flex-start; } }
+        .panel { background: var(--card-background); border-radius: 20px; padding: 1.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .child-info-panel { flex: 1; text-align: center; }
+        .child-info-panel h2 { margin-top: 0; color: var(--primary-color); }
+        .actions-panel { flex: 2; }
+        .actions-panel h2 { margin-top: 0; color: var(--primary-color); }
+        #child-name { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        #child-age { font-size: 1.2rem; color: #555; margin-bottom: 1rem; }
+        #current-time { font-size: 2.5rem; font-weight: 700; color: var(--accent-color); }
+        .actions-container { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+        @media(min-width: 600px) { .actions-container { grid-template-columns: 1fr 1fr; } }
+        .actions-column h3 { margin-top: 0; padding-bottom: 0.5rem; border-bottom: 2px solid var(--background-color); }
+        .actions-column.positive h3 { color: var(--primary-color); }
+        .actions-column.negative h3 { color: var(--danger-color); }
+        .actions-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+        .action-btn {
+            border: none; padding: 0.75rem; border-radius: 10px;
+            font-family: 'Fredoka', sans-serif; font-size: 1rem; cursor: pointer;
+            transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;
+        }
+        .action-btn.positive { background-color: #e8f5e9; }
+        .action-btn.positive:hover { background-color: #c8e6c9; }
+        .action-btn.negative { background-color: #ffebee; }
+        .action-btn.negative:hover { background-color: #ffcdd2; }
+        .action-value { font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 5px; color: var(--white-color); }
+        .action-btn.positive .action-value { background-color: var(--primary-color); }
+        .action-btn.negative .action-value { background-color: var(--danger-color); }
+        .loader { text-align: center; padding: 2rem; font-size: 1.5rem; color: #777; }
+    </style>
+    <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Adjust Session Time</h1>
+        <a href="./session_timer.html" class="back-link">← Back to Session Timers</a>
+    </header>
+    <main id="main-content" style="display: none;">
+        <div class="panel child-info-panel">
+            <h2>Selected Child</h2>
+            <div id="child-name">Child Name</div>
+            <div id="child-age"></div>
+            <div id="current-time">00:00:00</div>
+        </div>
+        <div class="panel actions-panel">
+            <div class="actions-container">
+                <div class="actions-column positive">
+                    <h3>✅ Good Behaviour (Earn More Screen Time)</h3>
+                    <div id="positive-actions" class="actions-grid"></div>
+                </div>
+                <div class="actions-column negative">
+                    <h3>❌ Unwanted Behaviour (Lose Screen Time)</h3>
+                    <div id="negative-actions" class="actions-grid"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div id="loader" class="loader">Loading Child's Data...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const firebaseConfig = {
+                apiKey: "AIzaSyASPRZkzieEbk3H4NyZHYvhSM0X2WZ_ZPk",
+                authDomain: "auskick-supercoach.firebaseapp.com",
+                projectId: "auskick-supercoach",
+                storageBucket: "auskick-supercoach.firebasestorage.app",
+                messagingSenderId: "1091558293121",
+                appId: "1:1091558293121:web:c226813c3a3afc3c449780"
+            };
+
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            signInAnonymously(auth);
+
+            const childrenCollectionPath = `/tech-timer/sessionChildren/list`;
+            let currentChild = null;
+            let timerInterval = null;
+
+            const positiveActionsEl = document.getElementById('positive-actions');
+            const negativeActionsEl = document.getElementById('negative-actions');
+            const childNameEl = document.getElementById('child-name');
+            const childAgeEl = document.getElementById('child-age');
+            const currentTimeEl = document.getElementById('current-time');
+            const mainContentEl = document.getElementById('main-content');
+            const loaderEl = document.getElementById('loader');
+
+            const BEHAVIOUR_ACTIONS = [
+                { name: "Did chores without asking", timeChangeMinutes: 15, type: 'positive' },
+                { name: "Read a book", timeChangeMinutes: 10, type: 'positive' },
+                { name: "Played outside", timeChangeMinutes: 10, type: 'positive' },
+                { name: "Was very kind", timeChangeMinutes: 5, type: 'positive' },
+                { name: "Didn't listen", timeChangeMinutes: -5, type: 'negative' },
+                { name: "Was unkind to sibling", timeChangeMinutes: -10, type: 'negative' },
+                { name: "Didn't do chores", timeChangeMinutes: -15, type: 'negative' },
+                { name: "Complained about break", timeChangeMinutes: -5, type: 'negative' },
+            ];
+            
+            function formatTime(totalSeconds) {
+                if (totalSeconds < 0) totalSeconds = 0;
+                const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+                const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+                const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+                return `${hours}:${minutes}:${seconds}`;
+            }
+            
+            function updateLiveTimer() {
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+
+                if (currentChild && currentChild.timerState === 'running') {
+                    timerInterval = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - currentChild.timerStartTime) / 1000);
+                        const remaining = currentChild.breakTimeSeconds - elapsed;
+                        if (remaining < 0) {
+                            currentTimeEl.textContent = formatTime(0);
+                            clearInterval(timerInterval);
+                        } else {
+                            currentTimeEl.textContent = formatTime(remaining);
+                        }
+                    }, 1000);
+                } else if (currentChild) {
+                    currentTimeEl.textContent = formatTime(currentChild.breakTimeSeconds);
+                }
+            }
+
+            function renderActionButtons() {
+                positiveActionsEl.innerHTML = '';
+                negativeActionsEl.innerHTML = '';
+                BEHAVIOUR_ACTIONS.forEach(action => {
+                    const btn = document.createElement('button');
+                    btn.className = `action-btn ${action.type}`;
+                    const valueText = action.timeChangeMinutes > 0 ? `+${action.timeChangeMinutes}` : action.timeChangeMinutes;
+                    btn.innerHTML = `
+                        <span>${action.name}</span>
+                        <span class="action-value">${valueText} min</span>
+                    `;
+                    btn.addEventListener('click', () => handleActionClick(action.timeChangeMinutes * 60));
+                    
+                    if(action.type === 'positive') {
+                        positiveActionsEl.appendChild(btn);
+                    } else {
+                        negativeActionsEl.appendChild(btn);
+                    }
+                });
+            }
+
+            async function handleActionClick(timeChangeSeconds) {
+                if (!currentChild) return;
+                const childRef = doc(db, childrenCollectionPath, currentChild.id);
+                
+                let newTime = currentChild.breakTimeSeconds;
+                if(currentChild.timerState === 'running'){
+                    const elapsed = Math.floor((Date.now() - currentChild.timerStartTime) / 1000);
+                    newTime = currentChild.breakTimeSeconds - elapsed;
+                }
+
+                if (timeChangeSeconds < 0 && (newTime + timeChangeSeconds < 0) ) {
+                    timeChangeSeconds = -newTime;
+                }
+                
+                if (timeChangeSeconds !== 0) {
+                    await updateDoc(childRef, {
+                        breakTimeSeconds: increment(timeChangeSeconds)
+                    });
+                }
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const childId = urlParams.get('childId');
+
+            if (childId) {
+                const childRef = doc(db, childrenCollectionPath, childId);
+                onSnapshot(childRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        currentChild = { id: docSnap.id, ...docSnap.data() };
+                        childNameEl.textContent = currentChild.name;
+                        childAgeEl.textContent = `Age: ${currentChild.age || 'N/A'}`;
+                        
+                        updateLiveTimer();
+
+                        renderActionButtons();
+
+                        loaderEl.style.display = 'none';
+                        mainContentEl.style.display = 'flex';
+                    } else {
+                        loaderEl.textContent = "Error: Child not found.";
+                    }
+                });
+            } else {
+                loaderEl.textContent = "No child selected. Go back to the session timer page and click 'Adjust Time'.";
+            }
+        });
+    </script>
+</body>
+</html>

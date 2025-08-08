@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Session Timer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4CAF50; /* Calm green */
+            --secondary-color: #FFC107; /* Bright yellow for actions */
+            --accent-color: #3D5AFE; /* Bold blue for highlights */
+            --danger-color: #dc3545;
+            --danger-hover-color: #c82333;
+            --info-color: #6c757d;
+            --background-color: #F0F4F8;
+            --text-color: #333;
+            --card-background: #ffffff;
+            --white-color: #ffffff;
+        }
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background-color: var(--primary-color); /* Changed header color for distinction */
+            color: var(--white-color);
+            padding: 1rem 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.5rem); }
+        main {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+        .main-content { flex: 3; min-width: 0; }
+        .main-content h2 {
+            font-size: clamp(1.8rem, 5vw, 2.2rem);
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+        }
+        #timers-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .child-card {
+            background-color: var(--card-background);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        .child-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--primary-color);
+            margin: 0 auto 1rem auto;
+        }
+        .placeholder-photo {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            margin: 0 auto 1rem auto;
+            border: 4px solid var(--primary-color);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2.5rem; color: #aaa;
+        }
+        .child-name { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .child-age { font-size: 1rem; color: #666; margin-bottom: 0.5rem; }
+        .timer-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin: 1rem 0;
+            letter-spacing: 2px;
+        }
+        .timer-display.finished { color: var(--danger-color); }
+        .card-controls { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+        .button, .button-link {
+            background-color: var(--secondary-color); color: var(--text-color);
+            border: none; border-radius: 15px; padding: 0.8rem 1.5rem;
+            font-family: 'Fredoka', sans-serif; font-size: 1.1rem; font-weight: 500;
+            cursor: pointer; transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%;
+            text-decoration: none; display: inline-block; text-align: center; box-sizing: border-box;
+        }
+        .button:hover, .button-link:hover { background-color: #ffca28; transform: translateY(-2px); }
+        .button-secondary { background-color: #e9ecef; }
+        .button-secondary:hover { background-color: #ced4da; }
+        .danger-btn { background-color: var(--danger-color); color: var(--white-color); }
+        .danger-btn:hover { background-color: var(--danger-hover-color); color: var(--white-color); }
+        .primary-btn { background-color: var(--primary-color); color: var(--white-color); }
+        .primary-btn:hover { background-color: #45a049; color: var(--white-color); }
+        .accent-btn { background-color: var(--accent-color); color: var(--white-color); }
+        .accent-btn:hover { background-color: #304ffe; color: var(--white-color); }
+        .sidebar { flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+        .widget {
+            background-color: var(--card-background);
+            border-radius: 20px; padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .widget h3 { margin-top: 0; color: var(--primary-color); border-bottom: 2px solid var(--background-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .widget input {
+            width: 100%; padding: 0.8rem;
+            border-radius: 10px; border: 2px solid #ddd;
+            box-sizing: border-box; font-family: 'Fredoka', sans-serif;
+            font-size: 1rem; margin-bottom: 1rem;
+        }
+        footer { background-color: #333; color: var(--white-color); text-align: center; padding: 1rem; margin-top: auto; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.visible { display: flex; }
+        .modal-content { background: var(--white-color); padding: 2rem; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        .modal-content h2 { color: var(--accent-color); margin-top: 0; font-size: 1.8rem; }
+        .confirm-controls { display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;}
+        #camera-stream { width: 100%; border-radius: 15px; margin-bottom: 1rem; transform: scaleX(-1); }
+        #photo-canvas { display: none; }
+        .camera-controls { display: flex; gap: 1rem; }
+        .card-icon-btn { position: absolute; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 50%; width: 35px; height: 35px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; z-index: 5; }
+        .card-icon-btn:hover { background: rgba(0,0,0,0.6); }
+        .camera-btn-card { top: 10px; right: 10px; }
+        .remove-btn-card { top: 10px; left: 10px; font-size: 12px; }
+
+        @media (min-width: 1024px) { main { flex-direction: row; } }
+    </style>
+    <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+    <header><h1>Tech Session Timer 🎮</h1></header>
+
+    <main>
+        <div class="main-content">
+            <h2>Children's Session Timers</h2>
+            <div id="timers-container">
+                <!-- Child timer cards will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <div class="widget">
+                <h3>Switch Mode</h3>
+                <a href="./index.html" class="button-link accent-btn">Go to Break Timer ⏱️</a>
+            </div>
+            <div class="widget">
+                <h3>Add New Child to Session</h3>
+                <input type="text" id="new-child-name" placeholder="Child's Name">
+                <input type="number" id="new-child-age" placeholder="Child's Age">
+                <button id="add-child-btn" class="button">Add Child</button>
+                <p style="color: var(--muted-text); margin: 0.5rem 0 0; font-size: 0.95rem;">New timers start at 00:00 and can be adjusted on each card.</p>
+            </div>
+            <div class="widget">
+                <h3>Settings</h3>
+                <button id="reset-all-btn" class="danger-btn">Reset All Session Timers</button>
+            </div>
+            <div class="widget">
+                <h3>Bulk Set Timers</h3>
+                <input type="number" id="bulk-set-minutes" placeholder="Minutes to set for all (e.g., 30)">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button id="bulk-set-btn" class="button accent-btn">Apply to All</button>
+                    <button id="bulk-start-btn" class="button primary-btn">Start All</button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <footer><p>Enjoy your screen time responsibly! ✨</p></footer>
+
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="confirm-view" style="display:none;">
+                <h2 id="confirm-title">Are you sure?</h2>
+                <p id="confirm-message">This cannot be undone.</p>
+                <div class="confirm-controls">
+                    <button id="confirm-yes-btn" class="danger-btn">Yes, Proceed</button>
+                    <button id="confirm-no-btn" class="button-secondary">Cancel</button>
+                </div>
+            </div>
+            <div id="camera-view" style="display:none;">
+                <h2>Set Child's Photo</h2>
+                <video id="camera-stream" autoplay playsinline></video>
+                <canvas id="photo-canvas"></canvas>
+                <div class="camera-controls">
+                    <button id="capture-btn" class="button primary-btn">📸 Capture</button>
+                    <button id="switch-camera-btn" class="button button-secondary">🔄 Switch</button>
+                    <button id="cancel-camera-btn" class="button-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const firebaseConfig = {
+                apiKey: "AIzaSyASPRZkzieEbk3H4NyZHYvhSM0X2WZ_ZPk",
+                authDomain: "auskick-supercoach.firebaseapp.com",
+                projectId: "auskick-supercoach",
+                storageBucket: "auskick-supercoach.firebasestorage.app",
+                messagingSenderId: "1091558293121",
+                appId: "1:1091558293121:web:c226813c3a3afc3c449780"
+            };
+
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            signInAnonymously(auth);
+            
+            const childrenCollectionPath = `/tech-timer/sessionChildren/list`;
+            let childrenData = [];
+            let timerIntervals = {};
+            let currentStream = null;
+            let currentChildIdForPhoto = null;
+            let currentFacingMode = 'user';
+
+            const timersContainer = document.getElementById('timers-container');
+            const addChildBtn = document.getElementById('add-child-btn');
+            const newChildNameInput = document.getElementById('new-child-name');
+            const newChildAgeInput = document.getElementById('new-child-age');
+            
+            const resetAllBtn = document.getElementById('reset-all-btn');
+            const bulkSetInput = document.getElementById('bulk-set-minutes');
+            const bulkSetBtn = document.getElementById('bulk-set-btn');
+            const bulkStartBtn = document.getElementById('bulk-start-btn');
+            const modal = document.getElementById('modal');
+            const confirmView = document.getElementById('confirm-view');
+            const cameraView = document.getElementById('camera-view');
+            const videoEl = document.getElementById('camera-stream');
+            const canvasEl = document.getElementById('photo-canvas');
+            const switchCameraBtn = document.getElementById('switch-camera-btn');
+
+            function formatTime(totalSeconds) {
+                if (totalSeconds < 0) totalSeconds = 0;
+                const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+                const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+                const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+                return `${hours}:${minutes}:${seconds}`;
+            }
+
+            function renderTimers() {
+                timersContainer.innerHTML = '';
+                childrenData.forEach(child => {
+                    const card = document.createElement('div');
+                    card.className = 'child-card';
+                    card.dataset.childId = child.id;
+
+                    const timeRemaining = child.timerState === 'running'
+                        ? Math.max(0, child.breakTimeSeconds - Math.floor((Date.now() - child.timerStartTime) / 1000))
+                        : child.breakTimeSeconds;
+                    
+                    const localImage = localStorage.getItem(`child_photo_${child.id}`);
+                    const photoEl = localImage
+                        ? `<img src="${localImage}" alt="${child.name}" class="child-photo">`
+                        : `<div class="placeholder-photo">${child.name.charAt(0)}</div>`;
+                    
+                    card.innerHTML = `
+                        <div>
+                            <button class="card-icon-btn remove-btn-card" data-child-id="${child.id}">❌</button>
+                            <button class="card-icon-btn camera-btn-card" data-child-id="${child.id}">📷</button>
+                            ${photoEl}
+                            <div class="child-name">${child.name}</div>
+                            <div class="child-age">Age: ${child.age || 'N/A'}</div>
+                            <div class="timer-display ${timeRemaining <= 0 ? 'finished' : ''}" id="timer-${child.id}">${formatTime(timeRemaining)}</div>
+                        </div>
+                        <div class="card-controls">
+                            <button class="button primary-btn" id="start-pause-${child.id}">${child.timerState === 'running' ? 'Pause' : 'Start'}</button>
+                            <a href="./adjust_session_time.html?childId=${child.id}" class="button-link button-secondary">Adjust Time</a>
+                            <button class="button-secondary" id="reset-${child.id}">Reset</button>
+                            <div class="adjust-controls">
+                                <button class="button-secondary adjust-delta" data-delta="-300">-5m</button>
+                                <button class="button-secondary adjust-delta" data-delta="-60">-1m</button>
+                                <button class="button-secondary adjust-delta" data-delta="60">+1m</button>
+                                <button class="button-secondary adjust-delta" data-delta="300">+5m</button>
+                            </div>
+                            <div class="set-controls">
+                                <input type="number" min="0" class="set-minutes-input" placeholder="Set minutes (e.g., 25)">
+                                <button class="button accent-btn set-minutes-btn">Set</button>
+                            </div>
+                        </div>
+                    `;
+                    timersContainer.appendChild(card);
+                    updateTimerDisplay(child);
+                });
+            }
+            
+            function updateTimerDisplay(child) {
+                if (timerIntervals[child.id]) {
+                    clearInterval(timerIntervals[child.id]);
+                }
+
+                const timerEl = document.getElementById(`timer-${child.id}`);
+                if (!timerEl) return;
+                
+                if (child.timerState === 'running') {
+                    timerIntervals[child.id] = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                        const remaining = child.breakTimeSeconds - elapsed;
+                        timerEl.textContent = formatTime(remaining);
+                        if (remaining <= 0) {
+                            timerEl.classList.add('finished');
+                            clearInterval(timerIntervals[child.id]);
+                            if(child.timerState === 'running') {
+                                pauseTimer(child.id);
+                            }
+                        }
+                    }, 1000);
+                } else {
+                     timerEl.textContent = formatTime(child.breakTimeSeconds);
+                }
+            }
+            
+            async function startTimer(childId) {
+                const child = childrenData.find(c => c.id === childId);
+                if (!child || child.breakTimeSeconds <= 0) return;
+                const childRef = doc(db, childrenCollectionPath, childId);
+                await updateDoc(childRef, {
+                    timerState: 'running',
+                    timerStartTime: Date.now()
+                });
+            }
+
+            async function pauseTimer(childId) {
+                const child = childrenData.find(c => c.id === childId);
+                if (!child || child.timerState !== 'running') return;
+                const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                const newTime = Math.max(0, child.breakTimeSeconds - elapsed);
+                const childRef = doc(db, childrenCollectionPath, childId);
+                await updateDoc(childRef, {
+                    timerState: 'paused',
+                    breakTimeSeconds: newTime,
+                    timerStartTime: null
+                });
+            }
+            
+            async function resetTimer(childId) {
+                 const child = childrenData.find(c => c.id === childId);
+                 if (!child) return;
+                 const childRef = doc(db, childrenCollectionPath, childId);
+                 await updateDoc(childRef, {
+                    timerState: 'stopped',
+                    breakTimeSeconds: child.initialBreakTimeSeconds,
+                    timerStartTime: null
+                 });
+            }
+
+             async function removeChild(childId) {
+                const childRef = doc(db, childrenCollectionPath, childId);
+                await deleteDoc(childRef);
+            }
+
+            timersContainer.addEventListener('click', e => {
+                const childId = e.target.closest('.child-card')?.dataset.childId;
+                if (!childId) return;
+
+                if (e.target.id.startsWith('start-pause-')) {
+                    const child = childrenData.find(c => c.id === childId);
+                    if (child.timerState === 'running') {
+                        pauseTimer(childId);
+                    } else {
+                        startTimer(childId);
+                    }
+                } else if (e.target.id.startsWith('reset-')) {
+                    resetTimer(childId);
+                } else if (e.target.classList.contains('camera-btn-card')) {
+                    openCamera(childId);
+                } else if (e.target.classList.contains('remove-btn-card')) {
+                    const child = childrenData.find(c => c.id === childId);
+                    showConfirmModal('Remove Child?', `Are you sure you want to remove ${child.name}? This action cannot be undone.`, () => {
+                        removeChild(childId);
+                    });
+                } else if (e.target.classList.contains('adjust-delta')) {
+                    const deltaSeconds = parseInt(e.target.dataset.delta, 10) || 0;
+                    if (!deltaSeconds) return;
+                    const child = childrenData.find(c => c.id === childId);
+                    if (!child) return;
+                    const childRef = doc(db, childrenCollectionPath, childId);
+                    let effectiveRemaining = child.breakTimeSeconds;
+                    if (child.timerState === 'running') {
+                        const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                        effectiveRemaining = Math.max(0, child.breakTimeSeconds - elapsed);
+                    }
+                    let clamped = deltaSeconds;
+                    if (deltaSeconds < 0 && effectiveRemaining + deltaSeconds < 0) {
+                        clamped = -effectiveRemaining;
+                    }
+                    if (clamped !== 0) {
+                        updateDoc(childRef, { breakTimeSeconds: increment(clamped) });
+                    }
+                } else if (e.target.classList.contains('set-minutes-btn')) {
+                    const card = e.target.closest('.child-card');
+                    const input = card.querySelector('.set-minutes-input');
+                    const mins = parseInt(input.value, 10);
+                    if (isNaN(mins) || mins < 0) return;
+                    const secs = mins * 60;
+                    const childRef = doc(db, childrenCollectionPath, childId);
+                    updateDoc(childRef, { timerState: 'stopped', breakTimeSeconds: secs, initialBreakTimeSeconds: secs, timerStartTime: null });
+                }
+            });
+            
+            addChildBtn.addEventListener('click', async () => {
+                const name = newChildNameInput.value.trim();
+                const age = parseInt(newChildAgeInput.value, 10);
+                if (!name || isNaN(age) || age <= 0) {
+                    alert('Please enter a valid name and a positive age.');
+                    return;
+                }
+                const timeSecs = 0;
+                await addDoc(collection(db, childrenCollectionPath), {
+                    name: name,
+                    age: age,
+                    initialBreakTimeSeconds: timeSecs,
+                    breakTimeSeconds: timeSecs,
+                    timerState: 'stopped',
+                    timerStartTime: null
+                });
+                newChildNameInput.value = '';
+                newChildAgeInput.value = '';
+            });
+
+            bulkSetBtn.addEventListener('click', async () => {
+                const mins = parseInt(bulkSetInput.value, 10);
+                if (isNaN(mins) || mins < 0) {
+                    alert('Enter minutes (0 or more).');
+                    return;
+                }
+                const secs = mins * 60;
+                const batch = writeBatch(db);
+                childrenData.forEach(child => {
+                    const childRef = doc(db, childrenCollectionPath, child.id);
+                    batch.update(childRef, {
+                        timerState: 'stopped',
+                        breakTimeSeconds: secs,
+                        initialBreakTimeSeconds: secs,
+                        timerStartTime: null
+                    });
+                });
+                await batch.commit();
+            });
+
+            bulkStartBtn.addEventListener('click', async () => {
+                const batch = writeBatch(db);
+                const startMs = Date.now();
+                let hasWrites = false;
+                childrenData.forEach(child => {
+                    if (child.breakTimeSeconds > 0 && child.timerState !== 'running') {
+                        const childRef = doc(db, childrenCollectionPath, child.id);
+                        batch.update(childRef, { timerState: 'running', timerStartTime: startMs });
+                        hasWrites = true;
+                    }
+                });
+                if (hasWrites) {
+                    await batch.commit();
+                }
+            });
+
+            function showModalView(view) {
+                confirmView.style.display = 'none';
+                cameraView.style.display = 'none';
+                document.getElementById(`${view}-view`).style.display = 'block';
+                modal.classList.add('visible');
+            }
+
+            function hideModal() {
+                modal.classList.remove('visible');
+                stopCamera();
+            }
+
+            function showConfirmModal(title, message, onConfirm) {
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+                showModalView('confirm');
+                
+                const confirmYesBtn = document.getElementById('confirm-yes-btn');
+                const confirmNoBtn = document.getElementById('confirm-no-btn');
+
+                const yesHandler = () => {
+                    hideModal();
+                    onConfirm();
+                    confirmYesBtn.removeEventListener('click', yesHandler);
+                };
+                confirmYesBtn.addEventListener('click', yesHandler, { once: true });
+                confirmNoBtn.addEventListener('click', hideModal, { once: true });
+            }
+            
+            async function openCamera(childId) {
+                currentChildIdForPhoto = childId;
+                stopCamera();
+
+                const constraints = { video: { facingMode: currentFacingMode } };
+
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    videoEl.srcObject = currentStream;
+                    videoEl.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
+                    showModalView('camera');
+                } catch (err) {
+                    console.error("Error opening camera:", err.name);
+                    if (currentFacingMode === 'environment') {
+                        console.log("Environment camera failed, trying user camera.");
+                        currentFacingMode = 'user';
+                        openCamera(childId);
+                    } else {
+                        alert(`Could not access the camera. Please check browser permissions. Error: ${err.name}`);
+                    }
+                }
+            }
+
+            function stopCamera() {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+            }
+            
+            document.getElementById('capture-btn').addEventListener('click', () => {
+                 const context = canvasEl.getContext('2d');
+                 canvasEl.width = videoEl.videoWidth;
+                 canvasEl.height = videoEl.videoHeight;
+                 if (currentFacingMode === 'user') {
+                    context.translate(canvasEl.width, 0);
+                    context.scale(-1, 1);
+                 }
+                 context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+                 const imageDataURL = canvasEl.toDataURL('image/jpeg');
+                 localStorage.setItem(`child_photo_${currentChildIdForPhoto}`, imageDataURL);
+                 hideModal();
+                 renderTimers();
+            });
+
+            switchCameraBtn.addEventListener('click', () => {
+                currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+                openCamera(currentChildIdForPhoto);
+            });
+
+            document.getElementById('cancel-camera-btn').addEventListener('click', hideModal);
+
+            resetAllBtn.addEventListener('click', () => {
+                showConfirmModal('Reset All Session Timers?', 'This will set every child\'s timer to 00:00 and stop them.', async () => {
+                    const batch = writeBatch(db);
+                    childrenData.forEach(child => {
+                        const childRef = doc(db, childrenCollectionPath, child.id);
+                        batch.update(childRef, {
+                            timerState: 'stopped',
+                            breakTimeSeconds: 0,
+                            timerStartTime: null
+                        });
+                    });
+                    await batch.commit();
+                });
+            });
+
+            onSnapshot(collection(db, childrenCollectionPath), (snapshot) => {
+                childrenData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                childrenData.sort((a,b) => a.name.localeCompare(b.name));
+                renderTimers();
+            });
+        });
+    </script>
+</body>
+</html>
