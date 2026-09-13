@@ -164,6 +164,7 @@
     <header>
         <h1>Tech Session Timer 🎮</h1>
         <div class="header-actions">
+            <a href="./index.html" class="nav-hub-pill" title="Back to Menu">🏠 Menu</a>
             <button id="parent-lock-btn" class="parent-lock-pill" title="Parental Controls">
                 <span id="parent-lock-icon">🔒</span> <span id="parent-lock-label">Parent Lock: ON</span>
             </button>
@@ -181,7 +182,7 @@
         <aside class="sidebar">
             <div class="widget">
                 <h3>Switch Mode</h3>
-                <a href="./index.html" class="button-link accent-btn">Go to Break Timer ⏱️</a>
+                <a href="./break_timer.html" class="button-link accent-btn">Go to Break Timer ⏱️</a>
             </div>
             <div class="widget">
                 <h3>🇦🇺 Australian Guidelines (NPAG)</h3>
@@ -662,6 +663,7 @@
                             ${photoEl}
                             <div class="child-name">${child.name}</div>
                             <div class="child-age">Age: ${child.age ?? 'N/A'}</div>
+                            <a href="./kid_timer.html?childId=${child.id}&mode=session" class="solo-view-pill" title="Solo view for ${child.name}">👤 Solo View</a>
                             <div class="npag-badge">🇦🇺 NPAG Cap: ${allowanceLabel}h/day</div>
                             <div class="timer-display ${timeRemaining <= 0 ? 'finished' : ''}" id="timer-${child.id}">${formatTime(timeRemaining)}</div>
                             

@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Individual Kid View - TechTimer</title>
+    <!-- iOS & Standalone Fullscreen PWA Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tech Timer">
+    <meta name="application-name" content="Tech Timer">
+    <meta name="theme-color" content="#0b1020">
+    <link rel="manifest" href="./manifest.json">
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/favicon-16x16.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <!-- Apple & Android Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/icon-180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./assets/icons/icon-512.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/styles.css">
+    <style>
+        .child-photo {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--primary-color);
+            margin: 0 auto 0.75rem auto;
+            box-shadow: 0 0 16px rgba(34, 211, 238, 0.35);
+        }
+        .placeholder-photo {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background-color: #1e293b;
+            margin: 0 auto 0.75rem auto;
+            border: 4px solid var(--primary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            box-shadow: 0 0 16px rgba(34, 211, 238, 0.35);
+        }
+        .card-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+        .card-icon-btn {
+            position: absolute;
+            background: rgba(0,0,0,0.4);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            z-index: 5;
+        }
+        .card-icon-btn:hover { background: rgba(0,0,0,0.6); }
+        .camera-btn-card { top: 12px; right: 12px; }
+        .remove-btn-card { top: 12px; left: 12px; font-size: 13px; }
+        #camera-stream { width: 100%; border-radius: 15px; margin-bottom: 1rem; transform: scaleX(-1); }
+        #photo-canvas { display: none; }
+        .camera-controls { display: flex; gap: 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="./index.html" class="nav-hub-pill" title="Back to Menu">🏠 Menu</a>
+            <a href="./session_timer.html" id="back-to-all-link" class="nav-hub-pill" title="View All Timers">← View All</a>
+        </div>
+        <div class="header-actions">
+            <button id="parent-lock-btn" class="parent-lock-pill" title="Parental Controls">
+                <span id="parent-lock-icon">🔒</span> <span id="parent-lock-label">Parent Lock: ON</span>
+            </button>
+        </div>
+    </header>
+
+    <main style="padding-top: 1.5rem;">
+        <div class="solo-container">
+            <!-- Sibling quick switcher bar -->
+            <div class="child-pill-bar" id="child-pill-bar">
+                <!-- Child pills inserted dynamically -->
+            </div>
+
+            <!-- Mode Switcher: Tech Session vs Healthy Break -->
+            <div style="text-align: center;">
+                <div class="kid-mode-switcher">
+                    <button type="button" class="kid-mode-btn active session" id="mode-session-btn">🎮 Tech Session</button>
+                    <button type="button" class="kid-mode-btn break" id="mode-break-btn">⏱️ Healthy Break</button>
+                </div>
+            </div>
+
+            <!-- Main Solo Card -->
+            <div class="child-card" id="solo-card" style="padding: 2rem 1.75rem; position: relative;">
+                <div id="card-inner-content">
+                    <div style="text-align: center; padding: 2rem; color: var(--muted-text);">Loading child profile...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p id="footer-tagline">Enjoy your screen time responsibly! ✨</p>
+    </footer>
+
+    <!-- Modals -->
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content">
+            <!-- Delete Confirm View -->
+            <div id="confirm-view" style="display:none;">
+                <h2 id="confirm-title">Are you sure?</h2>
+                <p id="confirm-message">This cannot be undone.</p>
+                <div class="confirm-controls">
+                    <button id="confirm-yes-btn" class="danger-btn">Yes, Proceed</button>
+                    <button id="confirm-no-btn" class="button-secondary">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Camera View -->
+            <div id="camera-view" style="display:none;">
+                <h2>Set Child's Photo</h2>
+                <video id="camera-stream" autoplay playsinline></video>
+                <canvas id="photo-canvas"></canvas>
+                <div class="camera-controls">
+                    <button id="capture-btn" class="button primary-btn">📸 Capture</button>
+                    <button id="switch-camera-btn" class="button button-secondary">🔄 Switch</button>
+                    <button id="cancel-camera-btn" class="button-secondary">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Parental PIN Keypad View -->
+            <div id="pin-view" class="pin-dialog" style="display:none;">
+                <h2 id="pin-title">Parental PIN 🔒</h2>
+                <p class="pin-subtitle" id="pin-prompt-text">Enter PIN to edit timers</p>
+                <div class="pin-display-container">
+                    <div class="pin-dots" id="pin-dots">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                    <div class="pin-error-text" id="pin-error-msg"></div>
+                </div>
+                <div class="pin-keypad" id="pin-keypad">
+                    <button type="button" class="pin-key-btn" data-key="1">1</button>
+                    <button type="button" class="pin-key-btn" data-key="2">2</button>
+                    <button type="button" class="pin-key-btn" data-key="3">3</button>
+                    <button type="button" class="pin-key-btn" data-key="4">4</button>
+                    <button type="button" class="pin-key-btn" data-key="5">5</button>
+                    <button type="button" class="pin-key-btn" data-key="6">6</button>
+                    <button type="button" class="pin-key-btn" data-key="7">7</button>
+                    <button type="button" class="pin-key-btn" data-key="8">8</button>
+                    <button type="button" class="pin-key-btn" data-key="9">9</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-clear-btn">Clear</button>
+                    <button type="button" class="pin-key-btn" data-key="0">0</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-backspace-btn">⌫</button>
+                </div>
+                <div style="margin-top: 1.25rem;">
+                    <button type="button" id="pin-cancel-btn" class="button-secondary" style="width: 100%;">Cancel</button>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 0.75rem; margin-bottom: 0;">Default PIN: 1234</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, writeBatch, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const firebaseConfig = {
+                apiKey: "AIzaSyASPRZkzieEbk3H4NyZHYvhSM0X2WZ_ZPk",
+                authDomain: "auskick-supercoach.firebaseapp.com",
+                projectId: "auskick-supercoach",
+                storageBucket: "auskick-supercoach.firebasestorage.app",
+                messagingSenderId: "1091558293121",
+                appId: "1:1091558293121:web:c226813c3a3afc3c449780"
+            };
+
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            signInAnonymously(auth);
+
+            // URL Params
+            const urlParams = new URLSearchParams(window.location.search);
+            let selectedChildId = urlParams.get('childId');
+            let currentMode = urlParams.get('mode') === 'break' ? 'break' : 'session';
+
+            // DOM Elements
+            const childPillBar = document.getElementById('child-pill-bar');
+            const modeSessionBtn = document.getElementById('mode-session-btn');
+            const modeBreakBtn = document.getElementById('mode-break-btn');
+            const cardInnerContent = document.getElementById('card-inner-content');
+            const backToAllLink = document.getElementById('back-to-all-link');
+            const footerTagline = document.getElementById('footer-tagline');
+
+            const parentLockBtn = document.getElementById('parent-lock-btn');
+            const parentLockIcon = document.getElementById('parent-lock-icon');
+            const parentLockLabel = document.getElementById('parent-lock-label');
+
+            const modal = document.getElementById('modal');
+            const confirmView = document.getElementById('confirm-view');
+            const cameraView = document.getElementById('camera-view');
+            const pinView = document.getElementById('pin-view');
+            const pinPromptText = document.getElementById('pin-prompt-text');
+            const pinDotsEl = document.getElementById('pin-dots');
+            const pinErrorMsgEl = document.getElementById('pin-error-msg');
+            const pinKeypad = document.getElementById('pin-keypad');
+            const pinClearBtn = document.getElementById('pin-clear-btn');
+            const pinBackspaceBtn = document.getElementById('pin-backspace-btn');
+            const pinCancelBtn = document.getElementById('pin-cancel-btn');
+
+            const videoEl = document.getElementById('camera-stream');
+            const canvasEl = document.getElementById('photo-canvas');
+            const captureBtn = document.getElementById('capture-btn');
+            const switchCameraBtn = document.getElementById('switch-camera-btn');
+            const cancelCameraBtn = document.getElementById('cancel-camera-btn');
+
+            let sessionChildren = [];
+            let breakChildren = [];
+            let timerInterval = null;
+            let currentStream = null;
+            let currentFacingMode = 'user';
+
+            // Parental PIN & Auth
+            const AUTH_SESSION_KEY = 'tech_timer_parent_auth';
+            const DEFAULT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // SHA-256 of "1234"
+            const settingsDocRef = doc(db, 'tech-timer', 'settings');
+            let activePinHash = DEFAULT_PIN_HASH;
+
+            async function hashPin(pin) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(pin);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            onSnapshot(settingsDocRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data()?.pinHash) {
+                    activePinHash = docSnap.data().pinHash;
+                }
+            });
+
+            function isParentAuthenticated() {
+                return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+            }
+
+            function setParentAuthenticated(authenticated) {
+                if (authenticated) {
+                    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+                } else {
+                    sessionStorage.removeItem(AUTH_SESSION_KEY);
+                }
+                updateLockUI();
+            }
+
+            function updateLockUI() {
+                if (!parentLockBtn) return;
+                if (isParentAuthenticated()) {
+                    parentLockBtn.classList.add('unlocked');
+                    parentLockIcon.textContent = '🔓';
+                    parentLockLabel.textContent = 'Parent Mode: ON';
+                } else {
+                    parentLockBtn.classList.remove('unlocked');
+                    parentLockIcon.textContent = '🔒';
+                    parentLockLabel.textContent = 'Parent Lock: ON';
+                }
+            }
+
+            let currentPinBuffer = '';
+            let pendingPinAction = null;
+
+            function updatePinDots() {
+                if (!pinDotsEl) return;
+                const dots = pinDotsEl.querySelectorAll('.pin-dot');
+                dots.forEach((dot, idx) => {
+                    if (idx < currentPinBuffer.length) {
+                        dot.classList.add('filled');
+                    } else {
+                        dot.classList.remove('filled');
+                    }
+                });
+            }
+
+            function handlePinDigit(digit) {
+                if (currentPinBuffer.length >= 4) return;
+                currentPinBuffer += digit;
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+
+                if (currentPinBuffer.length === 4) {
+                    setTimeout(async () => {
+                        const enteredHash = await hashPin(currentPinBuffer);
+                        if (enteredHash === activePinHash) {
+                            setParentAuthenticated(true);
+                            hideModal();
+                            if (typeof pendingPinAction === 'function') {
+                                const action = pendingPinAction;
+                                pendingPinAction = null;
+                                action();
+                            }
+                        } else {
+                            pinErrorMsgEl.textContent = 'Incorrect PIN. Try again.';
+                            pinDotsEl.classList.add('shake');
+                            setTimeout(() => {
+                                pinDotsEl.classList.remove('shake');
+                                currentPinBuffer = '';
+                                updatePinDots();
+                            }, 500);
+                        }
+                    }, 120);
+                }
+            }
+
+            function handlePinBackspace() {
+                if (currentPinBuffer.length > 0) {
+                    currentPinBuffer = currentPinBuffer.slice(0, -1);
+                    pinErrorMsgEl.textContent = '';
+                    updatePinDots();
+                }
+            }
+
+            function handlePinClear() {
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+            }
+
+            function openPinModal(actionCallback, promptText) {
+                pendingPinAction = actionCallback;
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                if (promptText) {
+                    pinPromptText.textContent = promptText;
+                } else {
+                    pinPromptText.textContent = 'Enter PIN to continue';
+                }
+                updatePinDots();
+                showModalView('pin');
+            }
+
+            function requireParentalPin(actionCallback, promptText) {
+                if (isParentAuthenticated()) {
+                    actionCallback();
+                } else {
+                    openPinModal(actionCallback, promptText);
+                }
+            }
+
+            parentLockBtn.addEventListener('click', () => {
+                if (isParentAuthenticated()) {
+                    setParentAuthenticated(false);
+                } else {
+                    openPinModal(() => {}, 'Enter PIN to unlock parent mode');
+                }
+            });
+
+            if (pinKeypad) {
+                pinKeypad.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.pin-key-btn');
+                    if (!btn) return;
+                    const key = btn.dataset.key;
+                    if (key !== undefined) {
+                        handlePinDigit(key);
+                    }
+                });
+            }
+
+            if (pinClearBtn) pinClearBtn.addEventListener('click', handlePinClear);
+            if (pinBackspaceBtn) pinBackspaceBtn.addEventListener('click', handlePinBackspace);
+            if (pinCancelBtn) pinCancelBtn.addEventListener('click', hideModal);
+
+            document.addEventListener('keydown', (e) => {
+                if (modal.classList.contains('visible') && pinView && pinView.style.display !== 'none') {
+                    if (e.key >= '0' && e.key <= '9') {
+                        handlePinDigit(e.key);
+                    } else if (e.key === 'Backspace') {
+                        handlePinBackspace();
+                    } else if (e.key === 'Escape') {
+                        hideModal();
+                    }
+                }
+            });
+
+            function showModalView(viewName) {
+                confirmView.style.display = 'none';
+                cameraView.style.display = 'none';
+                pinView.style.display = 'none';
+
+                if (viewName === 'confirm') confirmView.style.display = 'block';
+                if (viewName === 'camera') cameraView.style.display = 'block';
+                if (viewName === 'pin') pinView.style.display = 'block';
+                modal.classList.add('visible');
+            }
+
+            function hideModal() {
+                modal.classList.remove('visible');
+                confirmView.style.display = 'none';
+                cameraView.style.display = 'none';
+                pinView.style.display = 'none';
+                stopCamera();
+            }
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideModal();
+            });
+
+            // Camera helpers
+            async function startCamera(facingMode = 'user') {
+                stopCamera();
+                try {
+                    currentFacingMode = facingMode;
+                    currentStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: facingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+                    });
+                    videoEl.srcObject = currentStream;
+                } catch (err) {
+                    console.error("Camera access error:", err);
+                    alert("Could not access camera: " + err.message);
+                    hideModal();
+                }
+            }
+
+            function stopCamera() {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+            }
+
+            if (switchCameraBtn) {
+                switchCameraBtn.addEventListener('click', () => {
+                    const newMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                    startCamera(newMode);
+                });
+            }
+
+            if (cancelCameraBtn) cancelCameraBtn.addEventListener('click', hideModal);
+
+            if (captureBtn) {
+                captureBtn.addEventListener('click', () => {
+                    if (!videoEl.videoWidth || !selectedChildId) return;
+                    canvasEl.width = videoEl.videoWidth;
+                    canvasEl.height = videoEl.videoHeight;
+                    const ctx = canvasEl.getContext('2d');
+                    if (currentFacingMode === 'user') {
+                        ctx.translate(canvasEl.width, 0);
+                        ctx.scale(-1, 1);
+                    }
+                    ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+                    const dataUrl = canvasEl.toDataURL('image/jpeg', 0.85);
+                    localStorage.setItem(`child_photo_${selectedChildId}`, dataUrl);
+                    hideModal();
+                    renderSoloCard();
+                });
+            }
+
+            // NPAG Calculation
+            function getNPAGGuidelineSeconds(age) {
+                const numericAge = parseInt(age, 10);
+                if (isNaN(numericAge) || numericAge >= 5) return 7200; // 2 hours
+                if (numericAge >= 2) return 3600; // 1 hour
+                return 0;
+            }
+
+            function getAllowanceHoursLabel(allowanceSecs) {
+                const hrs = allowanceSecs / 3600;
+                return hrs % 1 === 0 ? hrs : hrs.toFixed(1);
+            }
+
+            function formatTime(totalSeconds) {
+                if (totalSeconds < 0) totalSeconds = 0;
+                const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+                const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+                const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+                return `${hours}:${minutes}:${seconds}`;
+            }
+
+            function getStatusClass(percent) {
+                if (percent <= 15) return 'status-danger';
+                if (percent <= 50) return 'status-warning';
+                return 'status-good';
+            }
+
+            // Mode Switching
+            function setMode(mode) {
+                currentMode = mode;
+                if (mode === 'session') {
+                    modeSessionBtn.className = 'kid-mode-btn active session';
+                    modeBreakBtn.className = 'kid-mode-btn break';
+                    backToAllLink.href = './session_timer.html';
+                    backToAllLink.textContent = '← All Sessions';
+                    footerTagline.textContent = 'Enjoy your screen time responsibly! ✨';
+                } else {
+                    modeBreakBtn.className = 'kid-mode-btn active break';
+                    modeSessionBtn.className = 'kid-mode-btn session';
+                    backToAllLink.href = './break_timer.html';
+                    backToAllLink.textContent = '← All Breaks';
+                    footerTagline.textContent = "Time for a healthy break! Let's play outside! 🌳";
+                }
+                renderSoloCard();
+            }
+
+            modeSessionBtn.addEventListener('click', () => setMode('session'));
+            modeBreakBtn.addEventListener('click', () => setMode('break'));
+
+            // Sibling Pills Bar
+            function renderSiblingPills() {
+                childPillBar.innerHTML = '';
+                const allList = currentMode === 'session' ? sessionChildren : (breakChildren.length > 0 ? breakChildren : sessionChildren);
+                if (allList.length === 0) return;
+
+                if (!selectedChildId || !allList.some(c => c.id === selectedChildId)) {
+                    selectedChildId = allList[0].id;
+                }
+
+                allList.forEach(child => {
+                    const pill = document.createElement('button');
+                    pill.className = `child-pill ${child.id === selectedChildId ? 'active' : ''}`;
+                    pill.textContent = `${child.name} (${child.age ?? '?'})`;
+                    pill.addEventListener('click', () => {
+                        selectedChildId = child.id;
+                        renderSiblingPills();
+                        renderSoloCard();
+                    });
+                    childPillBar.appendChild(pill);
+                });
+            }
+
+            // Render Solo Card
+            function renderSoloCard() {
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+
+                const list = currentMode === 'session' ? sessionChildren : breakChildren;
+                let child = list.find(c => c.id === selectedChildId);
+
+                // Fallback if not found in current mode's collection
+                if (!child && (sessionChildren.length > 0 || breakChildren.length > 0)) {
+                    const altList = currentMode === 'session' ? breakChildren : sessionChildren;
+                    const match = altList.find(c => c.id === selectedChildId);
+                    if (match) {
+                        child = {
+                            id: match.id,
+                            name: match.name,
+                            age: match.age,
+                            breakTimeSeconds: currentMode === 'session' ? getNPAGGuidelineSeconds(match.age) : 0,
+                            timerState: 'stopped'
+                        };
+                    } else if (list.length > 0) {
+                        child = list[0];
+                        selectedChildId = child.id;
+                    }
+                }
+
+                if (!child) {
+                    cardInnerContent.innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <h3 style="color: var(--white-color);">No Child Selected</h3>
+                            <p style="color: var(--muted-text);">Please select a child from the menu or add one in the main dashboard.</p>
+                            <a href="./index.html" class="button primary-btn" style="margin-top: 1rem;">Back to Menu</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const localImage = localStorage.getItem(`child_photo_${child.id}`);
+                const photoEl = localImage
+                    ? `<img src="${localImage}" alt="${child.name}" class="child-photo">`
+                    : `<div class="placeholder-photo">${child.name.charAt(0)}</div>`;
+
+                const timeRemaining = child.timerState === 'running'
+                    ? Math.max(0, (child.breakTimeSeconds || 0) - Math.floor((Date.now() - (child.timerStartTime || Date.now())) / 1000))
+                    : (child.breakTimeSeconds || 0);
+
+                const isRunning = child.timerState === 'running';
+
+                if (currentMode === 'session') {
+                    // Session Mode Card
+                    const allowanceSecs = (child.dailyAllowanceSeconds !== undefined && child.dailyAllowanceSeconds !== null)
+                        ? child.dailyAllowanceSeconds
+                        : getNPAGGuidelineSeconds(child.age);
+                    const allowanceLabel = getAllowanceHoursLabel(allowanceSecs);
+                    const percentRemaining = allowanceSecs > 0
+                        ? Math.min(100, Math.max(0, Math.round((timeRemaining / allowanceSecs) * 100)))
+                        : 0;
+                    const statusClass = getStatusClass(percentRemaining);
+                    const playPauseLabel = isRunning ? '⏸ Pause Tech' : '▶ Start Tech';
+
+                    cardInnerContent.innerHTML = `
+                        <button class="card-icon-btn remove-btn-card" id="remove-btn" title="Remove Child">❌</button>
+                        <button class="card-icon-btn camera-btn-card" id="camera-btn" title="Take Photo">📷</button>
+                        ${photoEl}
+                        <div class="child-name" style="font-size: 1.6rem;">${child.name}</div>
+                        <div class="child-age" style="font-size: 1.05rem;">Age: ${child.age ?? 'N/A'}</div>
+                        <div class="npag-badge" style="margin: 6px auto 10px auto;">🇦🇺 NPAG Cap: ${allowanceLabel}h/day</div>
+
+                        <div class="timer-display ${timeRemaining <= 0 ? 'finished' : ''}" id="solo-timer-display" style="font-size: clamp(2.4rem, 6vw, 3.4rem); margin: 0.75rem 0;">${formatTime(timeRemaining)}</div>
+
+                        <div class="quota-container" style="margin-bottom: 1.25rem;">
+                            <div class="quota-header">
+                                <span>Daily Screen Allowance</span>
+                                <span class="quota-percent" id="solo-quota-percent">${percentRemaining}% left</span>
+                            </div>
+                            <div class="quota-progress-bar">
+                                <div class="quota-progress-fill ${statusClass}" id="solo-quota-fill" style="width: ${percentRemaining}%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="card-controls">
+                            <button class="button primary-btn" id="start-pause-btn" style="font-size: 1.15rem; padding: 1rem;">${playPauseLabel}</button>
+                            <button class="button-secondary" id="reset-npag-btn">🔄 Reset to NPAG (${allowanceLabel}h)</button>
+                            <a href="./adjust_session_time.html?childId=${child.id}" class="button-link button-secondary" id="adjust-link-btn">⚖️ Adjust Time (Behaviors / Chores)</a>
+                            <div class="adjust-controls">
+                                <button class="button-secondary adjust-delta" data-delta="-300">-5m</button>
+                                <button class="button-secondary adjust-delta" data-delta="-60">-1m</button>
+                                <button class="button-secondary adjust-delta" data-delta="60">+1m</button>
+                                <button class="button-secondary adjust-delta" data-delta="300">+5m</button>
+                            </div>
+                            <div class="set-controls" style="display: flex; gap: 8px; margin-top: 6px;">
+                                <input type="number" min="0" class="set-minutes-input" id="set-min-input" placeholder="Set minutes (e.g., 60)" style="flex: 1; padding: 0.75rem; border-radius: 12px; border: 1.5px solid rgba(148,163,184,0.3); background: rgba(2,6,23,0.5); color: #fff;">
+                                <button class="button accent-btn" id="set-min-btn" style="width: auto; padding: 0.75rem 1.5rem;">Set</button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Live Ticking
+                    if (isRunning) {
+                        timerInterval = setInterval(() => {
+                            const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                            const remaining = Math.max(0, child.breakTimeSeconds - elapsed);
+                            const timerEl = document.getElementById('solo-timer-display');
+                            const fillEl = document.getElementById('solo-quota-fill');
+                            const pctEl = document.getElementById('solo-quota-percent');
+                            if (timerEl) {
+                                timerEl.textContent = formatTime(remaining);
+                                if (remaining <= 0) timerEl.classList.add('finished');
+                            }
+                            if (fillEl && pctEl && allowanceSecs > 0) {
+                                const pct = Math.min(100, Math.max(0, Math.round((remaining / allowanceSecs) * 100)));
+                                fillEl.style.width = `${pct}%`;
+                                pctEl.textContent = `${pct}% left`;
+                                fillEl.className = `quota-progress-fill ${getStatusClass(pct)}`;
+                            }
+                        }, 1000);
+                    }
+                } else {
+                    // Healthy Break Mode Card
+                    const playPauseLabel = isRunning ? '⏸ Pause Break' : '▶ Start Break';
+                    cardInnerContent.innerHTML = `
+                        <button class="card-icon-btn remove-btn-card" id="remove-btn" title="Remove Child">❌</button>
+                        <button class="card-icon-btn camera-btn-card" id="camera-btn" title="Take Photo">📷</button>
+                        ${photoEl}
+                        <div class="child-name" style="font-size: 1.6rem;">${child.name}</div>
+                        <div class="child-age" style="font-size: 1.05rem;">Age: ${child.age || 'N/A'}</div>
+                        <div class="hub-kid-status-pill" style="margin: 8px auto 12px auto; color: #86efac; border-color: rgba(34,197,94,0.4);">🌳 Healthy Break Mode</div>
+
+                        <div class="timer-display ${timeRemaining <= 0 ? 'finished' : ''}" id="solo-timer-display" style="font-size: clamp(2.4rem, 6vw, 3.4rem); margin: 1rem 0;">${formatTime(timeRemaining)}</div>
+
+                        <div class="card-controls">
+                            <button class="button primary-btn" id="start-pause-btn" style="font-size: 1.15rem; padding: 1rem;">${playPauseLabel}</button>
+                            <button class="button-secondary" id="reset-break-btn">🔄 Reset Break (00:00)</button>
+                            <a href="./adjust_time.html?childId=${child.id}" class="button-link button-secondary" id="adjust-link-btn">⚖️ Adjust Break Time</a>
+                            <div class="adjust-controls">
+                                <button class="button-secondary adjust-delta" data-delta="-300">-5m</button>
+                                <button class="button-secondary adjust-delta" data-delta="-60">-1m</button>
+                                <button class="button-secondary adjust-delta" data-delta="60">+1m</button>
+                                <button class="button-secondary adjust-delta" data-delta="300">+5m</button>
+                            </div>
+                            <div class="set-controls" style="display: flex; gap: 8px; margin-top: 6px;">
+                                <input type="number" min="0" class="set-minutes-input" id="set-min-input" placeholder="Set minutes (e.g., 20)" style="flex: 1; padding: 0.75rem; border-radius: 12px; border: 1.5px solid rgba(148,163,184,0.3); background: rgba(2,6,23,0.5); color: #fff;">
+                                <button class="button accent-btn" id="set-min-btn" style="width: auto; padding: 0.75rem 1.5rem;">Set</button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Live Ticking
+                    if (isRunning) {
+                        timerInterval = setInterval(() => {
+                            const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                            const remaining = Math.max(0, child.breakTimeSeconds - elapsed);
+                            const timerEl = document.getElementById('solo-timer-display');
+                            if (timerEl) {
+                                timerEl.textContent = formatTime(remaining);
+                                if (remaining <= 0) timerEl.classList.add('finished');
+                            }
+                        }, 1000);
+                    }
+                }
+
+                // Attach Card Listeners
+                bindCardEvents(child);
+            }
+
+            function getActiveCollectionPath() {
+                return currentMode === 'session' ? '/tech-timer/sessionChildren/list' : '/tech-timer/children/list';
+            }
+
+            function bindCardEvents(child) {
+                const startPauseBtn = document.getElementById('start-pause-btn');
+                const resetNpagBtn = document.getElementById('reset-npag-btn');
+                const resetBreakBtn = document.getElementById('reset-break-btn');
+                const adjustLinkBtn = document.getElementById('adjust-link-btn');
+                const cameraBtn = document.getElementById('camera-btn');
+                const removeBtn = document.getElementById('remove-btn');
+                const setMinBtn = document.getElementById('set-min-btn');
+                const setMinInput = document.getElementById('set-min-input');
+
+                const collectionPath = getActiveCollectionPath();
+                const childRef = doc(db, collectionPath, child.id);
+
+                if (startPauseBtn) {
+                    startPauseBtn.addEventListener('click', async () => {
+                        if (child.timerState === 'running') {
+                            // Pause
+                            const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                            const newRemaining = Math.max(0, child.breakTimeSeconds - elapsed);
+                            await updateDoc(childRef, {
+                                timerState: 'paused',
+                                breakTimeSeconds: newRemaining
+                            });
+                        } else {
+                            // Start
+                            if (child.breakTimeSeconds <= 0) return;
+                            await updateDoc(childRef, {
+                                timerState: 'running',
+                                timerStartTime: Date.now()
+                            });
+                        }
+                    });
+                }
+
+                if (resetNpagBtn) {
+                    resetNpagBtn.addEventListener('click', () => {
+                        requireParentalPin(async () => {
+                            const defaultCap = getNPAGGuidelineSeconds(child.age);
+                            await updateDoc(childRef, {
+                                breakTimeSeconds: defaultCap,
+                                dailyAllowanceSeconds: defaultCap,
+                                timerState: 'stopped'
+                            });
+                        }, `Enter PIN to reset ${child.name}'s daily screen allowance`);
+                    });
+                }
+
+                if (resetBreakBtn) {
+                    resetBreakBtn.addEventListener('click', () => {
+                        requireParentalPin(async () => {
+                            await updateDoc(childRef, {
+                                breakTimeSeconds: 0,
+                                timerState: 'stopped'
+                            });
+                        }, `Enter PIN to reset ${child.name}'s break timer`);
+                    });
+                }
+
+                if (adjustLinkBtn) {
+                    adjustLinkBtn.addEventListener('click', (e) => {
+                        if (!isParentAuthenticated()) {
+                            e.preventDefault();
+                            requireParentalPin(() => {
+                                window.location.href = adjustLinkBtn.getAttribute('href');
+                            }, `Enter PIN to adjust ${child.name}'s time`);
+                        }
+                    });
+                }
+
+                if (cameraBtn) {
+                    cameraBtn.addEventListener('click', () => {
+                        requireParentalPin(() => {
+                            showModalView('camera');
+                            startCamera();
+                        }, `Enter PIN to change photo for ${child.name}`);
+                    });
+                }
+
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => {
+                        requireParentalPin(() => {
+                            const confirmYesBtn = document.getElementById('confirm-yes-btn');
+                            const confirmNoBtn = document.getElementById('confirm-no-btn');
+                            const confirmMsg = document.getElementById('confirm-message');
+                            confirmMsg.textContent = `Are you sure you want to remove ${child.name}?`;
+                            showModalView('confirm');
+
+                            confirmYesBtn.onclick = async () => {
+                                await deleteDoc(childRef);
+                                localStorage.removeItem(`child_photo_${child.id}`);
+                                hideModal();
+                            };
+                            confirmNoBtn.onclick = hideModal;
+                        }, `Enter PIN to remove ${child.name}`);
+                    });
+                }
+
+                // Delta pills
+                const deltaBtns = document.querySelectorAll('.adjust-delta');
+                deltaBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const delta = parseInt(btn.dataset.delta, 10);
+                        requireParentalPin(async () => {
+                            let currentSecs = child.breakTimeSeconds;
+                            if (child.timerState === 'running') {
+                                const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                                currentSecs = Math.max(0, currentSecs - elapsed);
+                            }
+                            const updated = Math.max(0, currentSecs + delta);
+                            await updateDoc(childRef, {
+                                breakTimeSeconds: updated,
+                                timerStartTime: child.timerState === 'running' ? Date.now() : child.timerStartTime
+                            });
+                        }, `Enter PIN to adjust ${delta > 0 ? '+' : ''}${Math.round(delta / 60)} minutes`);
+                    });
+                });
+
+                if (setMinBtn && setMinInput) {
+                    setMinBtn.addEventListener('click', () => {
+                        const mins = parseInt(setMinInput.value, 10);
+                        if (isNaN(mins) || mins < 0) return;
+                        requireParentalPin(async () => {
+                            await updateDoc(childRef, {
+                                breakTimeSeconds: mins * 60,
+                                timerState: 'stopped'
+                            });
+                            setMinInput.value = '';
+                        }, `Enter PIN to set timer to ${mins} minutes`);
+                    });
+                }
+            }
+
+            // Real-time Firestore listeners for Session & Break children
+            const sessionColRef = collection(db, '/tech-timer/sessionChildren/list');
+            const breakColRef = collection(db, '/tech-timer/children/list');
+
+            onSnapshot(sessionColRef, (snapshot) => {
+                sessionChildren = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderSiblingPills();
+                if (currentMode === 'session') renderSoloCard();
+            });
+
+            onSnapshot(breakColRef, (snapshot) => {
+                breakChildren = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderSiblingPills();
+                if (currentMode === 'break') renderSoloCard();
+            });
+
+            // Initialize mode and lock state
+            setMode(currentMode);
+            updateLockUI();
+        });
+    </script>
+    <script src="./assets/ios-standalone.js"></script>
+</body>
+</html>

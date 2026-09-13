@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <title>Tech Break Timer</title>
+    <title>TechTimer - Family Screen Time & Break Manager</title>
     <!-- iOS & Standalone Fullscreen PWA Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -24,143 +24,45 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/styles.css">
     <style>
-        :root {
-            --primary-color: #4CAF50; /* Calm green */
-            --secondary-color: #FFC107; /* Bright yellow for actions */
-            --accent-color: #3D5AFE; /* Bold blue for highlights */
-            --danger-color: #dc3545;
-            --danger-hover-color: #c82333;
-            --info-color: #6c757d;
-            --background-color: #F0F4F8;
-            --text-color: #333;
-            --card-background: #ffffff;
-            --white-color: #ffffff;
-        }
-        body {
-            font-family: 'Fredoka', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        header {
-            background-color: var(--accent-color);
-            color: var(--white-color);
-            padding: 1rem 2rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        header h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.5rem); }
-        main {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            padding: 1.5rem;
-            gap: 1.5rem;
-        }
-        .main-content { flex: 3; min-width: 0; }
-        .main-content h2 {
-            font-size: clamp(1.8rem, 5vw, 2.2rem);
-            color: var(--accent-color);
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-        }
-        #timers-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-        .child-card {
-            background-color: var(--card-background);
-            border-radius: 20px;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-        }
         .child-photo {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             object-fit: cover;
-            border: 4px solid var(--accent-color);
-            margin: 0 auto 1rem auto;
+            border: 3px solid var(--primary-color);
+            margin: 0 auto 0.75rem auto;
+            box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
         }
         .placeholder-photo {
-            width: 80px; height: 80px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
-            background-color: #e0e0e0;
-            margin: 0 auto 1rem auto;
-            border: 4px solid var(--accent-color);
-            display: flex; justify-content: center; align-items: center;
-            font-size: 2.5rem; color: #aaa;
-        }
-        .child-name { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
-        .child-age { font-size: 1rem; color: #666; margin-bottom: 0.5rem; }
-        .timer-display {
-            font-size: 2.5rem;
+            background-color: #1e293b;
+            margin: 0 auto 0.75rem auto;
+            border: 3px solid var(--primary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2rem;
             font-weight: 700;
             color: var(--primary-color);
-            margin: 1rem 0;
-            letter-spacing: 2px;
+            box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
         }
-        .timer-display.finished { color: var(--danger-color); }
-        .card-controls { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
-        .button, .button-link {
-            background-color: var(--secondary-color); color: var(--text-color);
-            border: none; border-radius: 15px; padding: 0.8rem 1.5rem;
-            font-family: 'Fredoka', sans-serif; font-size: 1.1rem; font-weight: 500;
-            cursor: pointer; transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%;
-            text-decoration: none; display: inline-block; text-align: center; box-sizing: border-box;
+        @media (min-width: 1024px) {
+            main { flex-direction: row; }
+            .hub-main-area { flex: 3; min-width: 0; }
+            .sidebar { flex: 1; }
         }
-        .button:hover, .button-link:hover { background-color: #ffca28; transform: translateY(-2px); }
-        .button-secondary { background-color: #e9ecef; }
-        .button-secondary:hover { background-color: #ced4da; }
-        .danger-btn { background-color: var(--danger-color); color: var(--white-color); }
-        .danger-btn:hover { background-color: var(--danger-hover-color); color: var(--white-color); }
-        .primary-btn { background-color: var(--primary-color); color: var(--white-color); }
-        .primary-btn:hover { background-color: #45a049; color: var(--white-color); }
-        .sidebar { flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
-        .widget {
-            background-color: var(--card-background);
-            border-radius: 20px; padding: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-        .widget h3 { margin-top: 0; color: var(--accent-color); border-bottom: 2px solid var(--background-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
-        .widget input {
-            width: 100%; padding: 0.8rem;
-            border-radius: 10px; border: 2px solid #ddd;
-            box-sizing: border-box; font-family: 'Fredoka', sans-serif;
-            font-size: 1rem; margin-bottom: 1rem;
-        }
-        footer { background-color: #333; color: var(--white-color); text-align: center; padding: 1rem; margin-top: auto; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-overlay.visible { display: flex; }
-        .modal-content { background: var(--white-color); padding: 2rem; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
-        .modal-content h2 { color: var(--accent-color); margin-top: 0; font-size: 1.8rem; }
-        .confirm-controls { display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;}
-        #camera-stream { width: 100%; border-radius: 15px; margin-bottom: 1rem; transform: scaleX(-1); }
-        #photo-canvas { display: none; }
-        .camera-controls { display: flex; gap: 1rem; }
-        .card-icon-btn { position: absolute; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 50%; width: 35px; height: 35px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; z-index: 5; }
-        .card-icon-btn:hover { background: rgba(0,0,0,0.6); }
-        .camera-btn-card { top: 10px; right: 10px; }
-        .remove-btn-card { top: 10px; left: 10px; font-size: 12px; }
-
-        @media (min-width: 1024px) { main { flex-direction: row; } }
     </style>
-    <link rel="stylesheet" href="./assets/styles.css">
 </head>
 <body>
     <header>
-        <h1>Tech Break Timer ⏱️</h1>
+        <div>
+            <h1 style="font-size: clamp(1.7rem, 4vw, 2.3rem); margin: 0;">TechTimer 🚀</h1>
+            <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--muted-text);">Family Screen Time & Break Manager</p>
+        </div>
         <div class="header-actions">
             <button id="parent-lock-btn" class="parent-lock-pill" title="Parental Controls">
                 <span id="parent-lock-icon">🔒</span> <span id="parent-lock-label">Parent Lock: ON</span>
@@ -168,67 +70,111 @@
         </div>
     </header>
 
-    <main>
-        <div class="main-content">
-            <h2>Children's Break Timers</h2>
-            <div id="timers-container">
-                <!-- Child timer cards will be dynamically inserted here -->
-            </div>
+    <main style="display: flex; flex-direction: column; gap: 1.5rem; padding: 1.5rem;">
+        <div class="hub-main-area">
+            <!-- Section 1: View All Timers -->
+            <section class="hub-section">
+                <h2 class="hub-section-title">📊 View All Dashboards</h2>
+                <p class="hub-section-subtitle">Manage all children together on dedicated multi-timer boards</p>
+
+                <div class="hub-modes-grid">
+                    <!-- Session Mode Card -->
+                    <div class="hub-mode-card session-mode">
+                        <div>
+                            <div class="hub-mode-icon">🎮</div>
+                            <h3 class="hub-mode-title">Tech Session Timers</h3>
+                            <p class="hub-mode-desc">Enforce Australian 24-Hour Movement Guidelines (NPAG) recreational screen limits (up to 2h/day) with auto-reset and group controls.</p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <span id="session-count-badge" class="hub-mode-badge">Loading children...</span>
+                            <a href="./session_timer.html" class="button primary-btn" style="text-align: center; font-size: 1.05rem;">Open All Sessions ➔</a>
+                        </div>
+                    </div>
+
+                    <!-- Break Mode Card -->
+                    <div class="hub-mode-card break-mode">
+                        <div>
+                            <div class="hub-mode-icon">🌳</div>
+                            <h3 class="hub-mode-title">Healthy Break Timers</h3>
+                            <p class="hub-mode-desc">Encourage active outdoor play, physical rest, and healthy screen-free habits with full break countdown timers.</p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <span id="break-count-badge" class="hub-mode-badge" style="background: rgba(34,197,94,0.12); color: #86efac; border-color: rgba(34,197,94,0.3);">Loading children...</span>
+                            <a href="./break_timer.html" class="button accent-btn" style="text-align: center; font-size: 1.05rem;">Open All Breaks ➔</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Individual Kid Focus Grid -->
+            <section class="hub-section">
+                <h2 class="hub-section-title">👤 Individual Kid View</h2>
+                <p class="hub-section-subtitle">Select a child for dedicated, distraction-free full-screen timers</p>
+
+                <div class="hub-kids-grid" id="hub-kids-grid">
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--muted-text);">
+                        Connecting to cloud database...
+                    </div>
+                </div>
+            </section>
         </div>
 
+        <!-- Sidebar Widgets -->
         <aside class="sidebar">
+            <!-- NPAG Card -->
             <div class="widget">
-                <h3>Switch Mode</h3>
-                <a href="./session_timer.html" class="button-link primary-btn">Go to Session Timer 🎮</a>
+                <h3>🇦🇺 Australian Guidelines (NPAG)</h3>
+                <div class="guideline-widget">
+                    <h4>Health Recommendations</h4>
+                    <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: var(--muted-text);">
+                        Australian 24-Hour Movement Guidelines maximum daily recreational screen time:
+                    </p>
+                    <div class="guideline-list">
+                        <div class="guideline-item">
+                            <span>Ages 5 – 17 yrs</span>
+                            <span class="guideline-pill pill-green">Max 2 hrs/day</span>
+                        </div>
+                        <div class="guideline-item">
+                            <span>Ages 2 – 5 yrs</span>
+                            <span class="guideline-pill pill-amber">Max 1 hr/day</span>
+                        </div>
+                        <div class="guideline-item">
+                            <span>Under 2 yrs</span>
+                            <span class="guideline-pill pill-red">0 hrs (None)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Add Child Widget -->
             <div class="widget">
-                <h3>Add New Child to Break</h3>
+                <h3>➕ Add New Child</h3>
                 <input type="text" id="new-child-name" placeholder="Child's Name">
                 <input type="number" id="new-child-age" placeholder="Child's Age">
-                <button id="add-child-btn" class="button">Add Child</button>
-                <p style="color: var(--muted-text); margin: 0.5rem 0 0; font-size: 0.95rem;">New timers start at 00:00 and can be adjusted on each card.</p>
+                <button id="add-child-btn" class="button primary-btn" style="width: 100%;">Add Child</button>
+                <p style="color: var(--muted-text); margin: 0.5rem 0 0; font-size: 0.88rem;">Auto-allocates the official Australian NPAG daily screen limit based on age.</p>
             </div>
+
+            <!-- Settings Widget -->
             <div class="widget">
-                <h3>Settings & Parental Controls</h3>
-                <button id="change-pin-btn" class="button button-secondary" style="margin-bottom: 0.75rem;">🔑 Change Parental PIN</button>
-                <button id="reset-all-btn" class="danger-btn">Reset All Break Timers</button>
-            </div>
-            <div class="widget">
-                <h3>Bulk Set Timers</h3>
-                <input type="number" id="bulk-set-minutes" placeholder="Minutes to set for all (e.g., 30)">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button id="bulk-set-btn" class="button accent-btn">Apply to All</button>
-                    <button id="bulk-start-btn" class="button primary-btn">Start All</button>
-                </div>
+                <h3>🔑 Settings & Parental Controls</h3>
+                <button id="change-pin-btn" class="button button-secondary" style="margin-bottom: 0.75rem; width: 100%;">Change Parental PIN</button>
+                <p style="color: var(--muted-text); margin: 0; font-size: 0.85rem;">Parental PIN is synchronized across all family devices via Firestore.</p>
             </div>
         </aside>
     </main>
 
-    <footer><p>Time for a break! Let's play outside! 🌳</p></footer>
+    <footer>
+        <p>Healthy tech habits for the whole family ✨</p>
+    </footer>
 
+    <!-- Modals -->
     <div id="modal" class="modal-overlay">
         <div class="modal-content">
-            <div id="confirm-view" style="display:none;">
-                <h2 id="confirm-title">Are you sure?</h2>
-                <p id="confirm-message">This cannot be undone.</p>
-                <div class="confirm-controls">
-                    <button id="confirm-yes-btn" class="danger-btn">Yes, Proceed</button>
-                    <button id="confirm-no-btn" class="button-secondary">Cancel</button>
-                </div>
-            </div>
-            <div id="camera-view" style="display:none;">
-                <h2>Set Child's Photo</h2>
-                <video id="camera-stream" autoplay playsinline></video>
-                <canvas id="photo-canvas"></canvas>
-                <div class="camera-controls">
-                    <button id="capture-btn" class="button primary-btn">📸 Capture</button>
-                    <button id="switch-camera-btn" class="button button-secondary">🔄 Switch</button>
-                    <button id="cancel-camera-btn" class="button-secondary">Cancel</button>
-                </div>
-            </div>
+            <!-- PIN Keypad View -->
             <div id="pin-view" class="pin-dialog" style="display:none;">
                 <h2 id="pin-title">Parental PIN 🔒</h2>
-                <p class="pin-subtitle" id="pin-prompt-text">Enter PIN to edit break timers</p>
+                <p class="pin-subtitle" id="pin-prompt-text">Enter PIN to access parental settings</p>
                 <div class="pin-display-container">
                     <div class="pin-dots" id="pin-dots">
                         <div class="pin-dot"></div>
@@ -258,6 +204,7 @@
                 <p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 0.75rem; margin-bottom: 0;">Default PIN: 1234</p>
             </div>
 
+            <!-- Change PIN View -->
             <div id="change-pin-view" class="pin-dialog" style="display:none;">
                 <h2>Change Parental PIN 🔑</h2>
                 <p class="pin-subtitle">Set a new 4-digit code</p>
@@ -281,7 +228,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, onSnapshot, writeBatch, addDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const firebaseConfig = {
@@ -297,34 +244,21 @@
             const db = getFirestore(app);
             const auth = getAuth(app);
             signInAnonymously(auth);
-            
-            const childrenCollectionPath = `/tech-timer/children/list`;
-            let childrenData = [];
-            let timerIntervals = {};
-            let currentStream = null;
-            let currentChildIdForPhoto = null;
-            let currentFacingMode = 'user';
 
-            const timersContainer = document.getElementById('timers-container');
+            // DOM Elements
+            const hubKidsGrid = document.getElementById('hub-kids-grid');
+            const sessionCountBadge = document.getElementById('session-count-badge');
+            const breakCountBadge = document.getElementById('break-count-badge');
             const addChildBtn = document.getElementById('add-child-btn');
             const newChildNameInput = document.getElementById('new-child-name');
             const newChildAgeInput = document.getElementById('new-child-age');
-            
-            const resetAllBtn = document.getElementById('reset-all-btn');
-            const bulkSetInput = document.getElementById('bulk-set-minutes');
-            const bulkSetBtn = document.getElementById('bulk-set-btn');
-            const bulkStartBtn = document.getElementById('bulk-start-btn');
-            const modal = document.getElementById('modal');
-            const confirmView = document.getElementById('confirm-view');
-            const cameraView = document.getElementById('camera-view');
-            const videoEl = document.getElementById('camera-stream');
-            const canvasEl = document.getElementById('photo-canvas');
-            const switchCameraBtn = document.getElementById('switch-camera-btn');
+            const changePinBtn = document.getElementById('change-pin-btn');
 
-            // Parental PIN elements
             const parentLockBtn = document.getElementById('parent-lock-btn');
             const parentLockIcon = document.getElementById('parent-lock-icon');
             const parentLockLabel = document.getElementById('parent-lock-label');
+
+            const modal = document.getElementById('modal');
             const pinView = document.getElementById('pin-view');
             const changePinView = document.getElementById('change-pin-view');
             const pinPromptText = document.getElementById('pin-prompt-text');
@@ -334,7 +268,7 @@
             const pinClearBtn = document.getElementById('pin-clear-btn');
             const pinBackspaceBtn = document.getElementById('pin-backspace-btn');
             const pinCancelBtn = document.getElementById('pin-cancel-btn');
-            const changePinBtn = document.getElementById('change-pin-btn');
+
             const currentPinInput = document.getElementById('current-pin-input');
             const newPinInput = document.getElementById('new-pin-input');
             const confirmPinInput = document.getElementById('confirm-pin-input');
@@ -342,6 +276,10 @@
             const savePinBtn = document.getElementById('save-pin-btn');
             const cancelChangePinBtn = document.getElementById('cancel-change-pin-btn');
 
+            let sessionChildren = [];
+            let breakChildren = [];
+
+            // Parental PIN & Auth
             const AUTH_SESSION_KEY = 'tech_timer_parent_auth';
             const DEFAULT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // SHA-256 of "1234"
             const settingsDocRef = doc(db, 'tech-timer', 'settings');
@@ -355,7 +293,6 @@
                 return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             }
 
-            // Real-time synchronization of Parental PIN across all devices
             onSnapshot(settingsDocRef, (docSnap) => {
                 if (docSnap.exists() && docSnap.data()?.pinHash) {
                     activePinHash = docSnap.data().pinHash;
@@ -383,12 +320,10 @@
                     parentLockBtn.classList.add('unlocked');
                     parentLockIcon.textContent = '🔓';
                     parentLockLabel.textContent = 'Parent Mode: ON';
-                    parentLockBtn.title = 'Parental Controls Unlocked. Click to Lock.';
                 } else {
                     parentLockBtn.classList.remove('unlocked');
                     parentLockIcon.textContent = '🔒';
                     parentLockLabel.textContent = 'Parent Lock: ON';
-                    parentLockBtn.title = 'Parental Controls Locked. Click to Unlock.';
                 }
             }
 
@@ -458,7 +393,7 @@
                 if (promptText) {
                     pinPromptText.textContent = promptText;
                 } else {
-                    pinPromptText.textContent = 'Enter PIN to edit break timers';
+                    pinPromptText.textContent = 'Enter PIN to continue';
                 }
                 updatePinDots();
                 showModalView('pin');
@@ -505,6 +440,25 @@
                         hideModal();
                     }
                 }
+            });
+
+            function showModalView(viewName) {
+                pinView.style.display = 'none';
+                changePinView.style.display = 'none';
+
+                if (viewName === 'pin') pinView.style.display = 'block';
+                if (viewName === 'change-pin') changePinView.style.display = 'block';
+                modal.classList.add('visible');
+            }
+
+            function hideModal() {
+                modal.classList.remove('visible');
+                pinView.style.display = 'none';
+                changePinView.style.display = 'none';
+            }
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideModal();
             });
 
             if (changePinBtn) {
@@ -555,367 +509,143 @@
 
             if (cancelChangePinBtn) cancelChangePinBtn.addEventListener('click', hideModal);
 
-            // Initialize lock UI state
-            updateLockUI();
-
-            function formatTime(totalSeconds) {
-                if (totalSeconds < 0) totalSeconds = 0;
-                const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-                const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-                const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-                return `${hours}:${minutes}:${seconds}`;
+            // NPAG Helper
+            function getNPAGGuidelineSeconds(age) {
+                const numericAge = parseInt(age, 10);
+                if (isNaN(numericAge) || numericAge >= 5) return 7200; // 2 hours
+                if (numericAge >= 2) return 3600; // 1 hour
+                return 0;
             }
 
-            function renderTimers() {
-                timersContainer.innerHTML = '';
-                childrenData.forEach(child => {
-                    const card = document.createElement('div');
-                    card.className = 'child-card';
-                    card.dataset.childId = child.id;
+            function formatTimeShort(totalSeconds) {
+                if (totalSeconds <= 0) return '0m';
+                const h = Math.floor(totalSeconds / 3600);
+                const m = Math.floor((totalSeconds % 3600) / 60);
+                if (h > 0) return `${h}h ${m}m`;
+                return `${m}m`;
+            }
 
-                    const timeRemaining = child.timerState === 'running'
-                        ? Math.max(0, child.breakTimeSeconds - Math.floor((Date.now() - child.timerStartTime) / 1000))
-                        : child.breakTimeSeconds;
-                    
+            // Render Children Grid
+            function renderHubChildren() {
+                // Update badges
+                sessionCountBadge.textContent = `${sessionChildren.length} child${sessionChildren.length === 1 ? '' : 'ren'} enrolled`;
+                breakCountBadge.textContent = `${breakChildren.length} break profile${breakChildren.length === 1 ? '' : 's'}`;
+
+                // Primary list is sessionChildren
+                const list = sessionChildren.length > 0 ? sessionChildren : breakChildren;
+
+                if (list.length === 0) {
+                    hubKidsGrid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; background: var(--card-background); border-radius: 18px; border: 1px dashed var(--border-color);">
+                            <h3 style="color: var(--white-color); margin-top: 0;">No Children Added Yet</h3>
+                            <p style="color: var(--muted-text); margin-bottom: 1rem;">Use the form in the sidebar to add your first child with automatic NPAG guidelines.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                hubKidsGrid.innerHTML = '';
+                list.forEach(child => {
                     const localImage = localStorage.getItem(`child_photo_${child.id}`);
                     const photoEl = localImage
                         ? `<img src="${localImage}" alt="${child.name}" class="child-photo">`
                         : `<div class="placeholder-photo">${child.name.charAt(0)}</div>`;
-                    
+
+                    const sessionChild = sessionChildren.find(c => c.id === child.id) || child;
+                    const breakChild = breakChildren.find(c => c.id === child.id);
+
+                    const sessionRemaining = sessionChild.timerState === 'running'
+                        ? Math.max(0, (sessionChild.breakTimeSeconds || 0) - Math.floor((Date.now() - (sessionChild.timerStartTime || Date.now())) / 1000))
+                        : (sessionChild.breakTimeSeconds || 0);
+
+                    const breakRemaining = breakChild
+                        ? (breakChild.timerState === 'running'
+                            ? Math.max(0, (breakChild.breakTimeSeconds || 0) - Math.floor((Date.now() - (breakChild.timerStartTime || Date.now())) / 1000))
+                            : (breakChild.breakTimeSeconds || 0))
+                        : 0;
+
+                    const card = document.createElement('div');
+                    card.className = 'hub-kid-card';
                     card.innerHTML = `
                         <div>
-                            <button class="card-icon-btn remove-btn-card" data-child-id="${child.id}" title="Remove Child">❌</button>
-                            <button class="card-icon-btn camera-btn-card" data-child-id="${child.id}" title="Take Photo">📷</button>
                             ${photoEl}
-                            <div class="child-name">${child.name}</div>
-                            <div class="child-age">Age: ${child.age || 'N/A'}</div>
-                            <div class="timer-display ${timeRemaining <= 0 ? 'finished' : ''}" id="timer-${child.id}">${formatTime(timeRemaining)}</div>
-                        </div>
-                        <div class="card-controls">
-                            <button class="button primary-btn" id="start-pause-${child.id}">${child.timerState === 'running' ? 'Pause' : 'Start'}</button>
-                            <a href="./adjust_time.html?childId=${child.id}" class="button-link button-secondary adjust-link-btn">Adjust Time</a>
-                            <button class="button-secondary" id="reset-${child.id}">Reset</button>
-                            <div class="adjust-controls">
-                                <button class="button-secondary adjust-delta" data-delta="-300">-5m</button>
-                                <button class="button-secondary adjust-delta" data-delta="-60">-1m</button>
-                                <button class="button-secondary adjust-delta" data-delta="60">+1m</button>
-                                <button class="button-secondary adjust-delta" data-delta="300">+5m</button>
-                            </div>
-                            <div class="set-controls">
-                                <input type="number" min="0" class="set-minutes-input" placeholder="Set minutes (e.g., 25)">
-                                <button class="button accent-btn set-minutes-btn">Set</button>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #fff;">${child.name}</div>
+                            <div style="font-size: 0.95rem; color: var(--muted-text); margin-bottom: 0.5rem;">Age: ${child.age ?? 'N/A'}</div>
+                            <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 1rem;">
+                                <span class="hub-kid-status-pill" style="color: #7dd3fc; border-color: rgba(34,211,238,0.3);">
+                                    🎮 Screen: ${formatTimeShort(sessionRemaining)} left
+                                </span>
+                                <span class="hub-kid-status-pill" style="color: #86efac; border-color: rgba(34,197,94,0.3);">
+                                    ⏱️ Break: ${breakRemaining > 0 ? formatTimeShort(breakRemaining) : 'Ready'}
+                                </span>
                             </div>
                         </div>
+                        <a href="./kid_timer.html?childId=${child.id}&mode=session" class="button primary-btn" style="text-align: center; text-decoration: none; font-size: 0.95rem; padding: 0.75rem 1rem;">
+                            Open Kid View 👤 ➔
+                        </a>
                     `;
-                    timersContainer.appendChild(card);
-                    updateTimerDisplay(child);
-                });
-            }
-            
-            function updateTimerDisplay(child) {
-                if (timerIntervals[child.id]) {
-                    clearInterval(timerIntervals[child.id]);
-                }
-
-                const timerEl = document.getElementById(`timer-${child.id}`);
-                if (!timerEl) return;
-                
-                if (child.timerState === 'running') {
-                    timerIntervals[child.id] = setInterval(() => {
-                        const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
-                        const remaining = child.breakTimeSeconds - elapsed;
-                        timerEl.textContent = formatTime(remaining);
-                        if (remaining <= 0) {
-                            timerEl.classList.add('finished');
-                            clearInterval(timerIntervals[child.id]);
-                            if(child.timerState === 'running') {
-                                pauseTimer(child.id);
-                            }
-                        }
-                    }, 1000);
-                } else {
-                     timerEl.textContent = formatTime(child.breakTimeSeconds);
-                }
-            }
-            
-            async function startTimer(childId) {
-                const child = childrenData.find(c => c.id === childId);
-                if (!child || child.breakTimeSeconds <= 0) return;
-                const childRef = doc(db, childrenCollectionPath, childId);
-                await updateDoc(childRef, {
-                    timerState: 'running',
-                    timerStartTime: Date.now()
+                    hubKidsGrid.appendChild(card);
                 });
             }
 
-            async function pauseTimer(childId) {
-                const child = childrenData.find(c => c.id === childId);
-                if (!child || child.timerState !== 'running') return;
-                const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
-                const newTime = Math.max(0, child.breakTimeSeconds - elapsed);
-                const childRef = doc(db, childrenCollectionPath, childId);
-                await updateDoc(childRef, {
-                    timerState: 'paused',
-                    breakTimeSeconds: newTime,
-                    timerStartTime: null
-                });
-            }
-            
-            async function resetTimer(childId) {
-                 const child = childrenData.find(c => c.id === childId);
-                 if (!child) return;
-                 const childRef = doc(db, childrenCollectionPath, childId);
-                 await updateDoc(childRef, {
-                    timerState: 'stopped',
-                    breakTimeSeconds: child.initialBreakTimeSeconds,
-                    timerStartTime: null
-                 });
-            }
+            // Add Child Logic
+            if (addChildBtn) {
+                addChildBtn.addEventListener('click', () => {
+                    requireParentalPin(async () => {
+                        const name = newChildNameInput.value.trim();
+                        const age = parseInt(newChildAgeInput.value, 10);
 
-            async function removeChild(childId) {
-                const childRef = doc(db, childrenCollectionPath, childId);
-                await deleteDoc(childRef);
-            }
-
-            timersContainer.addEventListener('click', e => {
-                const childId = e.target.closest('.child-card')?.dataset.childId;
-                if (!childId) return;
-
-                // Adjust Time link clicked
-                const adjustLink = e.target.closest('.adjust-link-btn');
-                if (adjustLink) {
-                    if (!isParentAuthenticated()) {
-                        e.preventDefault();
-                        const targetHref = adjustLink.href;
-                        openPinModal(() => {
-                            window.location.href = targetHref;
-                        }, 'Enter PIN to adjust break time & behaviour');
-                        return;
-                    }
-                    return;
-                }
-
-                // Child actions (unlocked)
-                if (e.target.id.startsWith('start-pause-')) {
-                    const child = childrenData.find(c => c.id === childId);
-                    if (child.timerState === 'running') {
-                        pauseTimer(childId);
-                    } else {
-                        startTimer(childId);
-                    }
-                } else if (e.target.classList.contains('camera-btn-card')) {
-                    openCamera(childId);
-                } 
-                // Parent-protected actions
-                else if (e.target.id.startsWith('reset-')) {
-                    requireParentalPin(() => {
-                        resetTimer(childId);
-                    }, 'Enter PIN to reset break timer');
-                } else if (e.target.classList.contains('remove-btn-card')) {
-                    requireParentalPin(() => {
-                        const child = childrenData.find(c => c.id === childId);
-                        showConfirmModal('Remove Child?', `Are you sure you want to remove ${child.name}? This action cannot be undone.`, () => {
-                            removeChild(childId);
-                        });
-                    }, 'Enter PIN to remove child');
-                } else if (e.target.classList.contains('adjust-delta')) {
-                    const deltaSeconds = parseInt(e.target.dataset.delta, 10) || 0;
-                    if (!deltaSeconds) return;
-                    requireParentalPin(() => {
-                        const child = childrenData.find(c => c.id === childId);
-                        if (!child) return;
-                        const childRef = doc(db, childrenCollectionPath, childId);
-                        let effectiveRemaining = child.breakTimeSeconds;
-                        if (child.timerState === 'running') {
-                            const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
-                            effectiveRemaining = Math.max(0, child.breakTimeSeconds - elapsed);
+                        if (!name) {
+                            alert("Please enter the child's name.");
+                            return;
                         }
-                        let clamped = deltaSeconds;
-                        if (deltaSeconds < 0 && effectiveRemaining + deltaSeconds < 0) {
-                            clamped = -effectiveRemaining;
-                        }
-                        if (clamped !== 0) {
-                            updateDoc(childRef, { breakTimeSeconds: increment(clamped) });
-                        }
-                    }, 'Enter PIN to adjust break time');
-                } else if (e.target.classList.contains('set-minutes-btn')) {
-                    const card = e.target.closest('.child-card');
-                    const input = card.querySelector('.set-minutes-input');
-                    const mins = parseInt(input.value, 10);
-                    if (isNaN(mins) || mins < 0) return;
-                    requireParentalPin(() => {
-                        const secs = mins * 60;
-                        const childRef = doc(db, childrenCollectionPath, childId);
-                        updateDoc(childRef, { timerState: 'stopped', breakTimeSeconds: secs, initialBreakTimeSeconds: secs, timerStartTime: null });
-                    }, 'Enter PIN to set break time');
-                }
-            });
-            
-            addChildBtn.addEventListener('click', () => {
-                const name = newChildNameInput.value.trim();
-                const age = parseInt(newChildAgeInput.value, 10);
-                if (!name || isNaN(age) || age <= 0) {
-                    alert('Please enter a valid name and a positive age.');
-                    return;
-                }
-                requireParentalPin(async () => {
-                    const timeSecs = 0;
-                    await addDoc(collection(db, childrenCollectionPath), {
-                        name: name,
-                        age: age,
-                        initialBreakTimeSeconds: timeSecs,
-                        breakTimeSeconds: timeSecs,
-                        timerState: 'stopped',
-                        timerStartTime: null
-                    });
-                    newChildNameInput.value = '';
-                    newChildAgeInput.value = '';
-                }, 'Enter PIN to add child');
-            });
 
-            bulkSetBtn.addEventListener('click', () => {
-                const mins = parseInt(bulkSetInput.value, 10);
-                if (isNaN(mins) || mins < 0) {
-                    alert('Enter minutes (0 or more).');
-                    return;
-                }
-                requireParentalPin(async () => {
-                    const secs = mins * 60;
-                    const batch = writeBatch(db);
-                    childrenData.forEach(child => {
-                        const childRef = doc(db, childrenCollectionPath, child.id);
-                        batch.update(childRef, {
-                            timerState: 'stopped',
-                            breakTimeSeconds: secs,
-                            initialBreakTimeSeconds: secs,
-                            timerStartTime: null
-                        });
-                    });
-                    await batch.commit();
-                }, 'Enter PIN to bulk set break timers');
-            });
+                        const npagSeconds = getNPAGGuidelineSeconds(age);
 
-            bulkStartBtn.addEventListener('click', async () => {
-                const batch = writeBatch(db);
-                const startMs = Date.now();
-                let hasWrites = false;
-                childrenData.forEach(child => {
-                    if (child.breakTimeSeconds > 0 && child.timerState !== 'running') {
-                        const childRef = doc(db, childrenCollectionPath, child.id);
-                        batch.update(childRef, { timerState: 'running', timerStartTime: startMs });
-                        hasWrites = true;
-                    }
-                });
-                if (hasWrites) {
-                    await batch.commit();
-                }
-            });
-
-            function showModalView(view) {
-                confirmView.style.display = 'none';
-                cameraView.style.display = 'none';
-                if (pinView) pinView.style.display = 'none';
-                if (changePinView) changePinView.style.display = 'none';
-                document.getElementById(`${view}-view`).style.display = 'block';
-                modal.classList.add('visible');
-            }
-
-            function hideModal() {
-                modal.classList.remove('visible');
-                stopCamera();
-            }
-
-            function showConfirmModal(title, message, onConfirm) {
-                document.getElementById('confirm-title').textContent = title;
-                document.getElementById('confirm-message').textContent = message;
-                showModalView('confirm');
-                
-                const confirmYesBtn = document.getElementById('confirm-yes-btn');
-                const confirmNoBtn = document.getElementById('confirm-no-btn');
-
-                const yesHandler = () => {
-                    hideModal();
-                    onConfirm();
-                    confirmYesBtn.removeEventListener('click', yesHandler);
-                };
-                confirmYesBtn.addEventListener('click', yesHandler, { once: true });
-                confirmNoBtn.addEventListener('click', hideModal, { once: true });
-            }
-            
-            async function openCamera(childId) {
-                currentChildIdForPhoto = childId;
-                stopCamera();
-
-                const constraints = { video: { facingMode: currentFacingMode } };
-
-                try {
-                    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                    videoEl.srcObject = currentStream;
-                    videoEl.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
-                    showModalView('camera');
-                } catch (err) {
-                    console.error("Error opening camera:", err.name);
-                    if (currentFacingMode === 'environment') {
-                        console.log("Environment camera failed, trying user camera.");
-                        currentFacingMode = 'user';
-                        openCamera(childId);
-                    } else {
-                        alert(`Could not access the camera. Please check browser permissions. Error: ${err.name}`);
-                    }
-                }
-            }
-
-            function stopCamera() {
-                if (currentStream) {
-                    currentStream.getTracks().forEach(track => track.stop());
-                    currentStream = null;
-                }
-            }
-            
-            document.getElementById('capture-btn').addEventListener('click', () => {
-                 const context = canvasEl.getContext('2d');
-                 canvasEl.width = videoEl.videoWidth;
-                 canvasEl.height = videoEl.videoHeight;
-                 if (currentFacingMode === 'user') {
-                    context.translate(canvasEl.width, 0);
-                    context.scale(-1, 1);
-                 }
-                 context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-                 const imageDataURL = canvasEl.toDataURL('image/jpeg');
-                 localStorage.setItem(`child_photo_${currentChildIdForPhoto}`, imageDataURL);
-                 hideModal();
-                 renderTimers();
-            });
-
-            switchCameraBtn.addEventListener('click', () => {
-                currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-                openCamera(currentChildIdForPhoto);
-            });
-
-            document.getElementById('cancel-camera-btn').addEventListener('click', hideModal);
-
-            resetAllBtn.addEventListener('click', () => {
-                requireParentalPin(() => {
-                    showConfirmModal('Reset All Break Timers?', 'This will set every child\'s timer to 00:00 and stop them.', async () => {
-                        const batch = writeBatch(db);
-                        childrenData.forEach(child => {
-                            const childRef = doc(db, childrenCollectionPath, child.id);
-                            batch.update(childRef, {
+                        try {
+                            // Add to sessionChildren collection
+                            await addDoc(collection(db, '/tech-timer/sessionChildren/list'), {
+                                name: name,
+                                age: isNaN(age) ? null : age,
+                                breakTimeSeconds: npagSeconds,
+                                dailyAllowanceSeconds: npagSeconds,
                                 timerState: 'stopped',
-                                breakTimeSeconds: 0,
-                                timerStartTime: null
+                                lastResetDate: new Date().toDateString(),
+                                createdAt: Date.now()
                             });
-                        });
-                        await batch.commit();
-                    });
-                }, 'Enter PIN to reset all break timers');
+
+                            // Add to children collection (for breaks)
+                            await addDoc(collection(db, '/tech-timer/children/list'), {
+                                name: name,
+                                age: isNaN(age) ? null : age,
+                                breakTimeSeconds: 0,
+                                timerState: 'stopped',
+                                createdAt: Date.now()
+                            });
+
+                            newChildNameInput.value = '';
+                            newChildAgeInput.value = '';
+                            alert(`${name} has been added with NPAG screen allowance (${npagSeconds / 3600}h/day)!`);
+                        } catch (err) {
+                            console.error("Error adding child:", err);
+                            alert("Failed to add child: " + err.message);
+                        }
+                    }, "Enter PIN to add a new child");
+                });
+            }
+
+            // Real-time Firestore Listeners
+            onSnapshot(collection(db, '/tech-timer/sessionChildren/list'), (snapshot) => {
+                sessionChildren = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderHubChildren();
             });
 
-            onSnapshot(collection(db, childrenCollectionPath), (snapshot) => {
-                childrenData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                childrenData.sort((a,b) => a.name.localeCompare(b.name));
-                renderTimers();
+            onSnapshot(collection(db, '/tech-timer/children/list'), (snapshot) => {
+                breakChildren = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderHubChildren();
             });
+
+            updateLockUI();
         });
     </script>
     <script src="./assets/ios-standalone.js"></script>
