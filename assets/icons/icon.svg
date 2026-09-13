@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1020" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#a78bfa" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#bgGrad)" stroke="rgba(167, 139, 250, 0.3)" stroke-width="4"/>
+
+  <!-- Subtle grid ring -->
+  <circle cx="256" cy="268" r="150" fill="none" stroke="rgba(56, 189, 248, 0.15)" stroke-width="6" stroke-dasharray="12 8" />
+
+  <!-- Timer Outer Glow Arc -->
+  <circle cx="256" cy="268" r="130" fill="none" stroke="url(#accentGrad)" stroke-width="20" stroke-linecap="round" stroke-dasharray="720" stroke-dashoffset="140" filter="url(#glow)"/>
+
+  <!-- Top Timer Knob/Button -->
+  <rect x="238" y="96" width="36" height="28" rx="8" fill="#38bdf8" />
+  <rect x="220" y="80" width="72" height="18" rx="9" fill="#a78bfa" />
+
+  <!-- Diagonal Timer Pushers -->
+  <rect x="360" y="140" width="28" height="16" rx="6" fill="#38bdf8" transform="rotate(45 360 140)" />
+  <rect x="124" y="160" width="28" height="16" rx="6" fill="#38bdf8" transform="rotate(-45 124 160)" />
+
+  <!-- Center Clock Face Inner Circle -->
+  <circle cx="256" cy="268" r="95" fill="rgba(15, 23, 42, 0.75)" stroke="rgba(34, 211, 238, 0.3)" stroke-width="3" />
+
+  <!-- Timer Hands -->
+  <line x1="256" y1="268" x2="256" y2="200" stroke="#22d3ee" stroke-width="12" stroke-linecap="round" />
+  <line x1="256" y1="268" x2="310" y2="286" stroke="#a78bfa" stroke-width="10" stroke-linecap="round" />
+  <circle cx="256" cy="268" r="14" fill="#ffffff" />
+  <circle cx="256" cy="268" r="6" fill="#0b1020" />
+
+  <!-- Small Gamepad / Tech Indicator Badge at bottom -->
+  <rect x="206" y="388" width="100" height="28" rx="14" fill="rgba(34, 211, 238, 0.2)" stroke="#22d3ee" stroke-width="2" />
+  <circle cx="236" cy="402" r="4" fill="#22d3ee" />
+  <circle cx="256" cy="402" r="4" fill="#a78bfa" />
+  <circle cx="276" cy="402" r="4" fill="#22c55e" />
+</svg>

@@ -2,8 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Adjust Session Time - Tech Timer</title>
+    <!-- iOS & Standalone Fullscreen PWA Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tech Timer">
+    <meta name="application-name" content="Tech Timer">
+    <meta name="theme-color" content="#0b1020">
+    <link rel="manifest" href="./manifest.json">
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/favicon-16x16.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <!-- Apple & Android Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/icon-180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./assets/icons/icon-512.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&display=swap" rel="stylesheet">
@@ -58,14 +75,29 @@
 <body>
     <header>
         <h1>Adjust Session Time</h1>
-        <a href="./session_timer.html" class="back-link">← Back to Session Timers</a>
+        <div class="header-actions">
+            <button id="parent-lock-btn" class="parent-lock-pill" title="Parental Controls">
+                <span id="parent-lock-icon">🔒</span> <span id="parent-lock-label">Parent Lock: ON</span>
+            </button>
+            <a href="./session_timer.html" class="back-link">← Back to Session Timers</a>
+        </div>
     </header>
     <main id="main-content" style="display: none;">
         <div class="panel child-info-panel">
             <h2>Selected Child</h2>
             <div id="child-name">Child Name</div>
             <div id="child-age"></div>
+            <div id="npag-badge" class="npag-badge">🇦🇺 NPAG Cap: 2h/day</div>
             <div id="current-time">00:00:00</div>
+            <div class="quota-container" style="max-width: 260px; margin: 12px auto 0 auto;">
+                <div class="quota-header">
+                    <span>Daily Quota</span>
+                    <span class="quota-percent" id="quota-percent">100% left</span>
+                </div>
+                <div class="quota-progress-bar">
+                    <div class="quota-progress-fill status-good" id="quota-fill" style="width: 100%;"></div>
+                </div>
+            </div>
         </div>
         <div class="panel actions-panel">
             <div class="actions-container">
@@ -81,6 +113,42 @@
         </div>
     </main>
     <div id="loader" class="loader">Loading Child's Data...</div>
+
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="pin-view" class="pin-dialog" style="display:none;">
+                <h2 id="pin-title">Parental PIN 🔒</h2>
+                <p class="pin-subtitle" id="pin-prompt-text">Enter PIN to edit screen time</p>
+                <div class="pin-display-container">
+                    <div class="pin-dots" id="pin-dots">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                    <div class="pin-error-text" id="pin-error-msg"></div>
+                </div>
+                <div class="pin-keypad" id="pin-keypad">
+                    <button type="button" class="pin-key-btn" data-key="1">1</button>
+                    <button type="button" class="pin-key-btn" data-key="2">2</button>
+                    <button type="button" class="pin-key-btn" data-key="3">3</button>
+                    <button type="button" class="pin-key-btn" data-key="4">4</button>
+                    <button type="button" class="pin-key-btn" data-key="5">5</button>
+                    <button type="button" class="pin-key-btn" data-key="6">6</button>
+                    <button type="button" class="pin-key-btn" data-key="7">7</button>
+                    <button type="button" class="pin-key-btn" data-key="8">8</button>
+                    <button type="button" class="pin-key-btn" data-key="9">9</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-clear-btn">Clear</button>
+                    <button type="button" class="pin-key-btn" data-key="0">0</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-backspace-btn">⌫</button>
+                </div>
+                <div style="margin-top: 1.25rem;">
+                    <a href="./session_timer.html" class="button button-secondary" style="width: 100%; display: block; box-sizing: border-box;">Cancel & Return</a>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 0.75rem; margin-bottom: 0;">Default PIN: 1234</p>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -114,6 +182,176 @@
             const mainContentEl = document.getElementById('main-content');
             const loaderEl = document.getElementById('loader');
 
+            // Parental PIN elements
+            const parentLockBtn = document.getElementById('parent-lock-btn');
+            const parentLockIcon = document.getElementById('parent-lock-icon');
+            const parentLockLabel = document.getElementById('parent-lock-label');
+            const modal = document.getElementById('modal');
+            const pinView = document.getElementById('pin-view');
+            const pinPromptText = document.getElementById('pin-prompt-text');
+            const pinDotsEl = document.getElementById('pin-dots');
+            const pinErrorMsgEl = document.getElementById('pin-error-msg');
+            const pinKeypad = document.getElementById('pin-keypad');
+            const pinClearBtn = document.getElementById('pin-clear-btn');
+            const pinBackspaceBtn = document.getElementById('pin-backspace-btn');
+
+            const PIN_STORAGE_KEY = 'tech_timer_parent_pin';
+            const AUTH_SESSION_KEY = 'tech_timer_parent_auth';
+
+            function getParentPin() {
+                return localStorage.getItem(PIN_STORAGE_KEY) || '1234';
+            }
+
+            function isParentAuthenticated() {
+                return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+            }
+
+            function setParentAuthenticated(authenticated) {
+                if (authenticated) {
+                    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+                } else {
+                    sessionStorage.removeItem(AUTH_SESSION_KEY);
+                }
+                updateLockUI();
+            }
+
+            function updateLockUI() {
+                if (!parentLockBtn) return;
+                if (isParentAuthenticated()) {
+                    parentLockBtn.classList.add('unlocked');
+                    parentLockIcon.textContent = '🔓';
+                    parentLockLabel.textContent = 'Parent Mode: ON';
+                    parentLockBtn.title = 'Parental Controls Unlocked. Click to Lock.';
+                } else {
+                    parentLockBtn.classList.remove('unlocked');
+                    parentLockIcon.textContent = '🔒';
+                    parentLockLabel.textContent = 'Parent Lock: ON';
+                    parentLockBtn.title = 'Parental Controls Locked. Click to Unlock.';
+                }
+            }
+
+            let currentPinBuffer = '';
+            let pendingPinAction = null;
+
+            function updatePinDots() {
+                if (!pinDotsEl) return;
+                const dots = pinDotsEl.querySelectorAll('.pin-dot');
+                dots.forEach((dot, idx) => {
+                    if (idx < currentPinBuffer.length) {
+                        dot.classList.add('filled');
+                    } else {
+                        dot.classList.remove('filled');
+                    }
+                });
+            }
+
+            function hidePinModal() {
+                modal.classList.remove('visible');
+                if (pinView) pinView.style.display = 'none';
+                currentPinBuffer = '';
+                pendingPinAction = null;
+                updatePinDots();
+            }
+
+            function handlePinDigit(digit) {
+                if (currentPinBuffer.length >= 4) return;
+                currentPinBuffer += digit;
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+
+                if (currentPinBuffer.length === 4) {
+                    setTimeout(() => {
+                        if (currentPinBuffer === getParentPin()) {
+                            setParentAuthenticated(true);
+                            hidePinModal();
+                            if (typeof pendingPinAction === 'function') {
+                                const action = pendingPinAction;
+                                pendingPinAction = null;
+                                action();
+                            }
+                        } else {
+                            pinErrorMsgEl.textContent = 'Incorrect PIN. Try again.';
+                            pinDotsEl.classList.add('shake');
+                            setTimeout(() => {
+                                pinDotsEl.classList.remove('shake');
+                                currentPinBuffer = '';
+                                updatePinDots();
+                            }, 500);
+                        }
+                    }, 120);
+                }
+            }
+
+            function handlePinBackspace() {
+                if (currentPinBuffer.length > 0) {
+                    currentPinBuffer = currentPinBuffer.slice(0, -1);
+                    pinErrorMsgEl.textContent = '';
+                    updatePinDots();
+                }
+            }
+
+            function handlePinClear() {
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+            }
+
+            function openPinModal(actionCallback, promptText) {
+                pendingPinAction = actionCallback;
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                if (promptText) {
+                    pinPromptText.textContent = promptText;
+                } else {
+                    pinPromptText.textContent = 'Enter PIN to edit screen time';
+                }
+                updatePinDots();
+                pinView.style.display = 'block';
+                modal.classList.add('visible');
+            }
+
+            function requireParentalPin(actionCallback, promptText) {
+                if (isParentAuthenticated()) {
+                    actionCallback();
+                } else {
+                    openPinModal(actionCallback, promptText);
+                }
+            }
+
+            parentLockBtn.addEventListener('click', () => {
+                if (isParentAuthenticated()) {
+                    setParentAuthenticated(false);
+                } else {
+                    openPinModal(() => {}, 'Enter PIN to unlock parent mode');
+                }
+            });
+
+            if (pinKeypad) {
+                pinKeypad.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.pin-key-btn');
+                    if (!btn) return;
+                    const key = btn.dataset.key;
+                    if (key !== undefined) {
+                        handlePinDigit(key);
+                    }
+                });
+            }
+
+            if (pinClearBtn) pinClearBtn.addEventListener('click', handlePinClear);
+            if (pinBackspaceBtn) pinBackspaceBtn.addEventListener('click', handlePinBackspace);
+
+            document.addEventListener('keydown', (e) => {
+                if (modal.classList.contains('visible') && pinView && pinView.style.display !== 'none') {
+                    if (e.key >= '0' && e.key <= '9') {
+                        handlePinDigit(e.key);
+                    } else if (e.key === 'Backspace') {
+                        handlePinBackspace();
+                    }
+                }
+            });
+
+            updateLockUI();
+
             const BEHAVIOUR_ACTIONS = [
                 { name: "Did chores without asking", timeChangeMinutes: 15, type: 'positive' },
                 { name: "Read a book", timeChangeMinutes: 10, type: 'positive' },
@@ -125,12 +363,55 @@
                 { name: "Complained about break", timeChangeMinutes: -5, type: 'negative' },
             ];
             
+            const npagBadgeEl = document.getElementById('npag-badge');
+            const quotaFillEl = document.getElementById('quota-fill');
+            const quotaPercentEl = document.getElementById('quota-percent');
+
+            function getTodayDateString() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            function getNPAGGuidelineSeconds(age) {
+                const numericAge = parseInt(age, 10);
+                if (isNaN(numericAge) || numericAge >= 5) return 7200;
+                if (numericAge >= 2) return 3600;
+                return 0;
+            }
+
+            function getAllowanceHoursLabel(allowanceSecs) {
+                const hrs = allowanceSecs / 3600;
+                return hrs % 1 === 0 ? hrs : hrs.toFixed(1);
+            }
+
+            function getStatusClass(percent) {
+                if (percent <= 15) return 'status-danger';
+                if (percent <= 50) return 'status-warning';
+                return 'status-good';
+            }
+
             function formatTime(totalSeconds) {
                 if (totalSeconds < 0) totalSeconds = 0;
                 const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
                 const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
                 const seconds = (totalSeconds % 60).toString().padStart(2, '0');
                 return `${hours}:${minutes}:${seconds}`;
+            }
+
+            function syncQuotaProgress(remainingSecs) {
+                if (!currentChild || !quotaFillEl || !quotaPercentEl) return;
+                const allowanceSecs = (currentChild.dailyAllowanceSeconds !== undefined && currentChild.dailyAllowanceSeconds !== null)
+                    ? currentChild.dailyAllowanceSeconds
+                    : getNPAGGuidelineSeconds(currentChild.age);
+                const pct = allowanceSecs > 0
+                    ? Math.min(100, Math.max(0, Math.round((remainingSecs / allowanceSecs) * 100)))
+                    : 0;
+                quotaFillEl.style.width = `${pct}%`;
+                quotaPercentEl.textContent = `${pct}% left`;
+                quotaFillEl.className = `quota-progress-fill ${getStatusClass(pct)}`;
             }
             
             function updateLiveTimer() {
@@ -144,13 +425,16 @@
                         const remaining = currentChild.breakTimeSeconds - elapsed;
                         if (remaining < 0) {
                             currentTimeEl.textContent = formatTime(0);
+                            syncQuotaProgress(0);
                             clearInterval(timerInterval);
                         } else {
                             currentTimeEl.textContent = formatTime(remaining);
+                            syncQuotaProgress(remaining);
                         }
                     }, 1000);
                 } else if (currentChild) {
                     currentTimeEl.textContent = formatTime(currentChild.breakTimeSeconds);
+                    syncQuotaProgress(currentChild.breakTimeSeconds);
                 }
             }
 
@@ -175,25 +459,27 @@
                 });
             }
 
-            async function handleActionClick(timeChangeSeconds) {
-                if (!currentChild) return;
-                const childRef = doc(db, childrenCollectionPath, currentChild.id);
-                
-                let newTime = currentChild.breakTimeSeconds;
-                if(currentChild.timerState === 'running'){
-                    const elapsed = Math.floor((Date.now() - currentChild.timerStartTime) / 1000);
-                    newTime = currentChild.breakTimeSeconds - elapsed;
-                }
+            function handleActionClick(timeChangeSeconds) {
+                requireParentalPin(async () => {
+                    if (!currentChild) return;
+                    const childRef = doc(db, childrenCollectionPath, currentChild.id);
+                    
+                    let newTime = currentChild.breakTimeSeconds;
+                    if(currentChild.timerState === 'running'){
+                        const elapsed = Math.floor((Date.now() - currentChild.timerStartTime) / 1000);
+                        newTime = currentChild.breakTimeSeconds - elapsed;
+                    }
 
-                if (timeChangeSeconds < 0 && (newTime + timeChangeSeconds < 0) ) {
-                    timeChangeSeconds = -newTime;
-                }
-                
-                if (timeChangeSeconds !== 0) {
-                    await updateDoc(childRef, {
-                        breakTimeSeconds: increment(timeChangeSeconds)
-                    });
-                }
+                    if (timeChangeSeconds < 0 && (newTime + timeChangeSeconds < 0) ) {
+                        timeChangeSeconds = -newTime;
+                    }
+                    
+                    if (timeChangeSeconds !== 0) {
+                        await updateDoc(childRef, {
+                            breakTimeSeconds: increment(timeChangeSeconds)
+                        });
+                    }
+                }, 'Enter PIN to adjust screen time');
             }
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -205,7 +491,34 @@
                     if (docSnap.exists()) {
                         currentChild = { id: docSnap.id, ...docSnap.data() };
                         childNameEl.textContent = currentChild.name;
-                        childAgeEl.textContent = `Age: ${currentChild.age || 'N/A'}`;
+                        childAgeEl.textContent = `Age: ${currentChild.age ?? 'N/A'}`;
+
+                        // Auto-allocation of NPAG and daily refresh check
+                        const todayStr = getTodayDateString();
+                        const npagAllowance = getNPAGGuidelineSeconds(currentChild.age);
+                        const isNewDay = !currentChild.lastResetDate || currentChild.lastResetDate !== todayStr;
+                        const isMismatch = currentChild.dailyAllowanceSeconds !== npagAllowance;
+
+                        if (isNewDay || isMismatch) {
+                            const updateData = {
+                                dailyAllowanceSeconds: npagAllowance,
+                                lastResetDate: todayStr
+                            };
+                            if (isNewDay) {
+                                updateData.breakTimeSeconds = npagAllowance;
+                                updateData.initialBreakTimeSeconds = npagAllowance;
+                                updateData.timerState = 'stopped';
+                                updateData.timerStartTime = null;
+                            }
+                            updateDoc(childRef, updateData);
+                        }
+
+                        const allowanceSecs = (currentChild.dailyAllowanceSeconds !== undefined && currentChild.dailyAllowanceSeconds !== null)
+                            ? currentChild.dailyAllowanceSeconds
+                            : getNPAGGuidelineSeconds(currentChild.age);
+                        if (npagBadgeEl) {
+                            npagBadgeEl.textContent = `🇦🇺 NPAG Cap: ${getAllowanceHoursLabel(allowanceSecs)}h/day`;
+                        }
                         
                         updateLiveTimer();
 
@@ -213,6 +526,11 @@
 
                         loaderEl.style.display = 'none';
                         mainContentEl.style.display = 'flex';
+
+                        // If not unlocked yet, prompt parent
+                        if (!isParentAuthenticated()) {
+                            openPinModal(() => {}, 'Enter PIN to edit screen time');
+                        }
                     } else {
                         loaderEl.textContent = "Error: Child not found.";
                     }
@@ -222,5 +540,6 @@
             }
         });
     </script>
+    <script src="./assets/ios-standalone.js"></script>
 </body>
 </html>

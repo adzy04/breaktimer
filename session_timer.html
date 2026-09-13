@@ -2,8 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Tech Session Timer</title>
+    <!-- iOS & Standalone Fullscreen PWA Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tech Timer">
+    <meta name="application-name" content="Tech Timer">
+    <meta name="theme-color" content="#0b1020">
+    <link rel="manifest" href="./manifest.json">
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/favicon-16x16.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <!-- Apple & Android Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/icon-180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./assets/icons/icon-512.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;700&display=swap" rel="stylesheet">
@@ -144,7 +161,14 @@
     <link rel="stylesheet" href="./assets/styles.css">
 </head>
 <body>
-    <header><h1>Tech Session Timer 🎮</h1></header>
+    <header>
+        <h1>Tech Session Timer 🎮</h1>
+        <div class="header-actions">
+            <button id="parent-lock-btn" class="parent-lock-pill" title="Parental Controls">
+                <span id="parent-lock-icon">🔒</span> <span id="parent-lock-label">Parent Lock: ON</span>
+            </button>
+        </div>
+    </header>
 
     <main>
         <div class="main-content">
@@ -160,14 +184,39 @@
                 <a href="./index.html" class="button-link accent-btn">Go to Break Timer ⏱️</a>
             </div>
             <div class="widget">
+                <h3>🇦🇺 Australian Guidelines (NPAG)</h3>
+                <button id="apply-npag-btn" class="button primary-btn" style="margin-bottom: 0.75rem;">Apply NPAG Cap to All</button>
+                <div class="guideline-widget">
+                    <h4>Health Recommendations</h4>
+                    <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: var(--muted-text);">
+                        Australian 24-Hour Movement Guidelines maximum daily recreational screen time:
+                    </p>
+                    <div class="guideline-list">
+                        <div class="guideline-item">
+                            <span>Ages 5 – 17 yrs</span>
+                            <span class="guideline-pill pill-green">Max 2 hrs/day</span>
+                        </div>
+                        <div class="guideline-item">
+                            <span>Ages 2 – 5 yrs</span>
+                            <span class="guideline-pill pill-amber">Max 1 hr/day</span>
+                        </div>
+                        <div class="guideline-item">
+                            <span>Under 2 yrs</span>
+                            <span class="guideline-pill pill-red">0 hrs (None)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="widget">
                 <h3>Add New Child to Session</h3>
                 <input type="text" id="new-child-name" placeholder="Child's Name">
                 <input type="number" id="new-child-age" placeholder="Child's Age">
                 <button id="add-child-btn" class="button">Add Child</button>
-                <p style="color: var(--muted-text); margin: 0.5rem 0 0; font-size: 0.95rem;">New timers start at 00:00 and can be adjusted on each card.</p>
+                <p style="color: var(--muted-text); margin: 0.5rem 0 0; font-size: 0.95rem;">Automatically initializes with the Australian NPAG daily limit based on age (up to 2h).</p>
             </div>
             <div class="widget">
-                <h3>Settings</h3>
+                <h3>Settings & Parental Controls</h3>
+                <button id="change-pin-btn" class="button button-secondary" style="margin-bottom: 0.75rem;">🔑 Change Parental PIN</button>
                 <button id="reset-all-btn" class="danger-btn">Reset All Session Timers</button>
             </div>
             <div class="widget">
@@ -201,6 +250,55 @@
                     <button id="capture-btn" class="button primary-btn">📸 Capture</button>
                     <button id="switch-camera-btn" class="button button-secondary">🔄 Switch</button>
                     <button id="cancel-camera-btn" class="button-secondary">Cancel</button>
+                </div>
+            </div>
+            <div id="pin-view" class="pin-dialog" style="display:none;">
+                <h2 id="pin-title">Parental PIN 🔒</h2>
+                <p class="pin-subtitle" id="pin-prompt-text">Enter PIN to edit session timers</p>
+                <div class="pin-display-container">
+                    <div class="pin-dots" id="pin-dots">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                    <div class="pin-error-text" id="pin-error-msg"></div>
+                </div>
+                <div class="pin-keypad" id="pin-keypad">
+                    <button type="button" class="pin-key-btn" data-key="1">1</button>
+                    <button type="button" class="pin-key-btn" data-key="2">2</button>
+                    <button type="button" class="pin-key-btn" data-key="3">3</button>
+                    <button type="button" class="pin-key-btn" data-key="4">4</button>
+                    <button type="button" class="pin-key-btn" data-key="5">5</button>
+                    <button type="button" class="pin-key-btn" data-key="6">6</button>
+                    <button type="button" class="pin-key-btn" data-key="7">7</button>
+                    <button type="button" class="pin-key-btn" data-key="8">8</button>
+                    <button type="button" class="pin-key-btn" data-key="9">9</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-clear-btn">Clear</button>
+                    <button type="button" class="pin-key-btn" data-key="0">0</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-backspace-btn">⌫</button>
+                </div>
+                <div style="margin-top: 1.25rem;">
+                    <button type="button" id="pin-cancel-btn" class="button-secondary" style="width: 100%;">Cancel</button>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 0.75rem; margin-bottom: 0;">Default PIN: 1234</p>
+            </div>
+
+            <div id="change-pin-view" class="pin-dialog" style="display:none;">
+                <h2>Change Parental PIN 🔑</h2>
+                <p class="pin-subtitle">Set a new 4-digit code</p>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; text-align: left;">
+                    <label style="font-size: 0.85rem; color: var(--muted-text);">Current PIN:</label>
+                    <input type="password" id="current-pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••" style="letter-spacing: 6px; font-size: 1.3rem; text-align: center;">
+                    <label style="font-size: 0.85rem; color: var(--muted-text);">New 4-Digit PIN:</label>
+                    <input type="password" id="new-pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••" style="letter-spacing: 6px; font-size: 1.3rem; text-align: center;">
+                    <label style="font-size: 0.85rem; color: var(--muted-text);">Confirm New PIN:</label>
+                    <input type="password" id="confirm-pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••" style="letter-spacing: 6px; font-size: 1.3rem; text-align: center;">
+                    <div class="pin-error-text" id="change-pin-error-msg" style="text-align: center;"></div>
+                </div>
+                <div class="confirm-controls">
+                    <button type="button" id="save-pin-btn" class="button primary-btn">Save New PIN</button>
+                    <button type="button" id="cancel-change-pin-btn" class="button-secondary">Cancel</button>
                 </div>
             </div>
         </div>
@@ -248,6 +346,245 @@
             const videoEl = document.getElementById('camera-stream');
             const canvasEl = document.getElementById('photo-canvas');
             const switchCameraBtn = document.getElementById('switch-camera-btn');
+            const applyNpagBtn = document.getElementById('apply-npag-btn');
+
+            // Parental PIN elements
+            const parentLockBtn = document.getElementById('parent-lock-btn');
+            const parentLockIcon = document.getElementById('parent-lock-icon');
+            const parentLockLabel = document.getElementById('parent-lock-label');
+            const pinView = document.getElementById('pin-view');
+            const changePinView = document.getElementById('change-pin-view');
+            const pinPromptText = document.getElementById('pin-prompt-text');
+            const pinDotsEl = document.getElementById('pin-dots');
+            const pinErrorMsgEl = document.getElementById('pin-error-msg');
+            const pinKeypad = document.getElementById('pin-keypad');
+            const pinClearBtn = document.getElementById('pin-clear-btn');
+            const pinBackspaceBtn = document.getElementById('pin-backspace-btn');
+            const pinCancelBtn = document.getElementById('pin-cancel-btn');
+            const changePinBtn = document.getElementById('change-pin-btn');
+            const currentPinInput = document.getElementById('current-pin-input');
+            const newPinInput = document.getElementById('new-pin-input');
+            const confirmPinInput = document.getElementById('confirm-pin-input');
+            const changePinErrorMsg = document.getElementById('change-pin-error-msg');
+            const savePinBtn = document.getElementById('save-pin-btn');
+            const cancelChangePinBtn = document.getElementById('cancel-change-pin-btn');
+
+            const PIN_STORAGE_KEY = 'tech_timer_parent_pin';
+            const AUTH_SESSION_KEY = 'tech_timer_parent_auth';
+
+            function getParentPin() {
+                return localStorage.getItem(PIN_STORAGE_KEY) || '1234';
+            }
+
+            function setParentPin(newPin) {
+                localStorage.setItem(PIN_STORAGE_KEY, newPin);
+            }
+
+            function isParentAuthenticated() {
+                return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+            }
+
+            function setParentAuthenticated(authenticated) {
+                if (authenticated) {
+                    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+                } else {
+                    sessionStorage.removeItem(AUTH_SESSION_KEY);
+                }
+                updateLockUI();
+            }
+
+            function updateLockUI() {
+                if (!parentLockBtn) return;
+                if (isParentAuthenticated()) {
+                    parentLockBtn.classList.add('unlocked');
+                    parentLockIcon.textContent = '🔓';
+                    parentLockLabel.textContent = 'Parent Mode: ON';
+                    parentLockBtn.title = 'Parental Controls Unlocked. Click to Lock.';
+                } else {
+                    parentLockBtn.classList.remove('unlocked');
+                    parentLockIcon.textContent = '🔒';
+                    parentLockLabel.textContent = 'Parent Lock: ON';
+                    parentLockBtn.title = 'Parental Controls Locked. Click to Unlock.';
+                }
+            }
+
+            let currentPinBuffer = '';
+            let pendingPinAction = null;
+
+            function updatePinDots() {
+                if (!pinDotsEl) return;
+                const dots = pinDotsEl.querySelectorAll('.pin-dot');
+                dots.forEach((dot, idx) => {
+                    if (idx < currentPinBuffer.length) {
+                        dot.classList.add('filled');
+                    } else {
+                        dot.classList.remove('filled');
+                    }
+                });
+            }
+
+            function handlePinDigit(digit) {
+                if (currentPinBuffer.length >= 4) return;
+                currentPinBuffer += digit;
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+
+                if (currentPinBuffer.length === 4) {
+                    setTimeout(() => {
+                        if (currentPinBuffer === getParentPin()) {
+                            setParentAuthenticated(true);
+                            hideModal();
+                            if (typeof pendingPinAction === 'function') {
+                                const action = pendingPinAction;
+                                pendingPinAction = null;
+                                action();
+                            }
+                        } else {
+                            pinErrorMsgEl.textContent = 'Incorrect PIN. Try again.';
+                            pinDotsEl.classList.add('shake');
+                            setTimeout(() => {
+                                pinDotsEl.classList.remove('shake');
+                                currentPinBuffer = '';
+                                updatePinDots();
+                            }, 500);
+                        }
+                    }, 120);
+                }
+            }
+
+            function handlePinBackspace() {
+                if (currentPinBuffer.length > 0) {
+                    currentPinBuffer = currentPinBuffer.slice(0, -1);
+                    pinErrorMsgEl.textContent = '';
+                    updatePinDots();
+                }
+            }
+
+            function handlePinClear() {
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+            }
+
+            function openPinModal(actionCallback, promptText) {
+                pendingPinAction = actionCallback;
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                if (promptText) {
+                    pinPromptText.textContent = promptText;
+                } else {
+                    pinPromptText.textContent = 'Enter PIN to edit session timers';
+                }
+                updatePinDots();
+                showModalView('pin');
+            }
+
+            function requireParentalPin(actionCallback, promptText) {
+                if (isParentAuthenticated()) {
+                    actionCallback();
+                } else {
+                    openPinModal(actionCallback, promptText);
+                }
+            }
+
+            parentLockBtn.addEventListener('click', () => {
+                if (isParentAuthenticated()) {
+                    setParentAuthenticated(false);
+                } else {
+                    openPinModal(() => {}, 'Enter PIN to unlock parent mode');
+                }
+            });
+
+            if (pinKeypad) {
+                pinKeypad.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.pin-key-btn');
+                    if (!btn) return;
+                    const key = btn.dataset.key;
+                    if (key !== undefined) {
+                        handlePinDigit(key);
+                    }
+                });
+            }
+
+            if (pinClearBtn) pinClearBtn.addEventListener('click', handlePinClear);
+            if (pinBackspaceBtn) pinBackspaceBtn.addEventListener('click', handlePinBackspace);
+            if (pinCancelBtn) pinCancelBtn.addEventListener('click', hideModal);
+
+            document.addEventListener('keydown', (e) => {
+                if (modal.classList.contains('visible') && pinView && pinView.style.display !== 'none') {
+                    if (e.key >= '0' && e.key <= '9') {
+                        handlePinDigit(e.key);
+                    } else if (e.key === 'Backspace') {
+                        handlePinBackspace();
+                    } else if (e.key === 'Escape') {
+                        hideModal();
+                    }
+                }
+            });
+
+            if (changePinBtn) {
+                changePinBtn.addEventListener('click', () => {
+                    requireParentalPin(() => {
+                        currentPinInput.value = '';
+                        newPinInput.value = '';
+                        confirmPinInput.value = '';
+                        changePinErrorMsg.textContent = '';
+                        showModalView('change-pin');
+                    }, 'Enter PIN to change parental settings');
+                });
+            }
+
+            if (savePinBtn) {
+                savePinBtn.addEventListener('click', () => {
+                    const currentPin = currentPinInput.value.trim();
+                    const newPin = newPinInput.value.trim();
+                    const confirmPin = confirmPinInput.value.trim();
+
+                    if (currentPin !== getParentPin()) {
+                        changePinErrorMsg.textContent = 'Current PIN is incorrect.';
+                        return;
+                    }
+                    if (!/^\d{4}$/.test(newPin)) {
+                        changePinErrorMsg.textContent = 'New PIN must be exactly 4 digits.';
+                        return;
+                    }
+                    if (newPin !== confirmPin) {
+                        changePinErrorMsg.textContent = 'New PINs do not match.';
+                        return;
+                    }
+
+                    setParentPin(newPin);
+                    setParentAuthenticated(true);
+                    hideModal();
+                    alert('Parental PIN successfully updated!');
+                });
+            }
+
+            if (cancelChangePinBtn) cancelChangePinBtn.addEventListener('click', hideModal);
+
+            // Initialize lock UI state
+            updateLockUI();
+
+            function getTodayDateString() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            let activeDateStr = getTodayDateString();
+
+            function getNPAGGuidelineSeconds(age) {
+                const numericAge = parseInt(age, 10);
+                if (isNaN(numericAge) || numericAge >= 5) {
+                    return 7200; // 2 hours for ages 5-17
+                }
+                if (numericAge >= 2) {
+                    return 3600; // 1 hour for ages 2-5
+                }
+                return 0; // 0 hours for under 2
+            }
 
             function formatTime(totalSeconds) {
                 if (totalSeconds < 0) totalSeconds = 0;
@@ -257,6 +594,17 @@
                 return `${hours}:${minutes}:${seconds}`;
             }
 
+            function getAllowanceHoursLabel(allowanceSecs) {
+                const hrs = allowanceSecs / 3600;
+                return hrs % 1 === 0 ? hrs : hrs.toFixed(1);
+            }
+
+            function getStatusClass(percent) {
+                if (percent <= 15) return 'status-danger';
+                if (percent <= 50) return 'status-warning';
+                return 'status-good';
+            }
+
             function renderTimers() {
                 timersContainer.innerHTML = '';
                 childrenData.forEach(child => {
@@ -264,28 +612,53 @@
                     card.className = 'child-card';
                     card.dataset.childId = child.id;
 
+                    const allowanceSecs = (child.dailyAllowanceSeconds !== undefined && child.dailyAllowanceSeconds !== null)
+                        ? child.dailyAllowanceSeconds
+                        : getNPAGGuidelineSeconds(child.age);
+                    const allowanceLabel = getAllowanceHoursLabel(allowanceSecs);
+
                     const timeRemaining = child.timerState === 'running'
                         ? Math.max(0, child.breakTimeSeconds - Math.floor((Date.now() - child.timerStartTime) / 1000))
                         : child.breakTimeSeconds;
                     
+                    const percentRemaining = allowanceSecs > 0
+                        ? Math.min(100, Math.max(0, Math.round((timeRemaining / allowanceSecs) * 100)))
+                        : 0;
+                    const statusClass = getStatusClass(percentRemaining);
+
                     const localImage = localStorage.getItem(`child_photo_${child.id}`);
                     const photoEl = localImage
                         ? `<img src="${localImage}" alt="${child.name}" class="child-photo">`
                         : `<div class="placeholder-photo">${child.name.charAt(0)}</div>`;
+
+                    const isRunning = child.timerState === 'running';
+                    const playPauseLabel = isRunning ? '⏸ Pause Tech' : '▶ Start Tech';
+                    const btnRunningClass = isRunning ? 'running' : '';
                     
                     card.innerHTML = `
                         <div>
-                            <button class="card-icon-btn remove-btn-card" data-child-id="${child.id}">❌</button>
-                            <button class="card-icon-btn camera-btn-card" data-child-id="${child.id}">📷</button>
+                            <button class="card-icon-btn remove-btn-card" data-child-id="${child.id}" title="Remove Child">❌</button>
+                            <button class="card-icon-btn camera-btn-card" data-child-id="${child.id}" title="Take Photo">📷</button>
                             ${photoEl}
                             <div class="child-name">${child.name}</div>
-                            <div class="child-age">Age: ${child.age || 'N/A'}</div>
+                            <div class="child-age">Age: ${child.age ?? 'N/A'}</div>
+                            <div class="npag-badge">🇦🇺 NPAG Cap: ${allowanceLabel}h/day</div>
                             <div class="timer-display ${timeRemaining <= 0 ? 'finished' : ''}" id="timer-${child.id}">${formatTime(timeRemaining)}</div>
+                            
+                            <div class="quota-container">
+                                <div class="quota-header">
+                                    <span>Daily Screen Allowance</span>
+                                    <span class="quota-percent" id="quota-percent-${child.id}">${percentRemaining}% left</span>
+                                </div>
+                                <div class="quota-progress-bar">
+                                    <div class="quota-progress-fill ${statusClass}" id="quota-fill-${child.id}" style="width: ${percentRemaining}%;"></div>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-controls">
-                            <button class="button primary-btn" id="start-pause-${child.id}">${child.timerState === 'running' ? 'Pause' : 'Start'}</button>
-                            <a href="./adjust_session_time.html?childId=${child.id}" class="button-link button-secondary">Adjust Time</a>
-                            <button class="button-secondary" id="reset-${child.id}">Reset</button>
+                            <button class="button primary-btn kid-timer-btn ${btnRunningClass}" id="start-pause-${child.id}">${playPauseLabel}</button>
+                            <button class="button-secondary npag-reset-btn" id="npag-reset-${child.id}">🔄 Reset to NPAG (${allowanceLabel}h)</button>
+                            <a href="./adjust_session_time.html?childId=${child.id}" class="button-link button-secondary adjust-session-link">Adjust Time</a>
                             <div class="adjust-controls">
                                 <button class="button-secondary adjust-delta" data-delta="-300">-5m</button>
                                 <button class="button-secondary adjust-delta" data-delta="-60">-1m</button>
@@ -293,7 +666,7 @@
                                 <button class="button-secondary adjust-delta" data-delta="300">+5m</button>
                             </div>
                             <div class="set-controls">
-                                <input type="number" min="0" class="set-minutes-input" placeholder="Set minutes (e.g., 25)">
+                                <input type="number" min="0" class="set-minutes-input" placeholder="Set minutes (e.g., 60)">
                                 <button class="button accent-btn set-minutes-btn">Set</button>
                             </div>
                         </div>
@@ -310,22 +683,42 @@
 
                 const timerEl = document.getElementById(`timer-${child.id}`);
                 if (!timerEl) return;
+
+                const allowanceSecs = (child.dailyAllowanceSeconds !== undefined && child.dailyAllowanceSeconds !== null)
+                    ? child.dailyAllowanceSeconds
+                    : getNPAGGuidelineSeconds(child.age);
+
+                function syncProgressBar(remainingSecs) {
+                    const fillEl = document.getElementById(`quota-fill-${child.id}`);
+                    const percentEl = document.getElementById(`quota-percent-${child.id}`);
+                    if (fillEl && percentEl) {
+                        const pct = allowanceSecs > 0
+                            ? Math.min(100, Math.max(0, Math.round((remainingSecs / allowanceSecs) * 100)))
+                            : 0;
+                        fillEl.style.width = `${pct}%`;
+                        percentEl.textContent = `${pct}% left`;
+                        fillEl.className = `quota-progress-fill ${getStatusClass(pct)}`;
+                    }
+                }
                 
                 if (child.timerState === 'running') {
                     timerIntervals[child.id] = setInterval(() => {
                         const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
                         const remaining = child.breakTimeSeconds - elapsed;
                         timerEl.textContent = formatTime(remaining);
+                        syncProgressBar(remaining);
+
                         if (remaining <= 0) {
                             timerEl.classList.add('finished');
                             clearInterval(timerIntervals[child.id]);
-                            if(child.timerState === 'running') {
+                            if (child.timerState === 'running') {
                                 pauseTimer(child.id);
                             }
                         }
                     }, 1000);
                 } else {
-                     timerEl.textContent = formatTime(child.breakTimeSeconds);
+                    timerEl.textContent = formatTime(child.breakTimeSeconds);
+                    syncProgressBar(child.breakTimeSeconds);
                 }
             }
             
@@ -353,108 +746,186 @@
             }
             
             async function resetTimer(childId) {
-                 const child = childrenData.find(c => c.id === childId);
-                 if (!child) return;
-                 const childRef = doc(db, childrenCollectionPath, childId);
-                 await updateDoc(childRef, {
+                const child = childrenData.find(c => c.id === childId);
+                if (!child) return;
+                const childRef = doc(db, childrenCollectionPath, childId);
+                await updateDoc(childRef, {
                     timerState: 'stopped',
                     breakTimeSeconds: child.initialBreakTimeSeconds,
                     timerStartTime: null
-                 });
+                });
             }
 
-             async function removeChild(childId) {
+            async function resetChildToNPAG(childId) {
+                const child = childrenData.find(c => c.id === childId);
+                if (!child) return;
+                const allowance = getNPAGGuidelineSeconds(child.age);
+                const childRef = doc(db, childrenCollectionPath, childId);
+                await updateDoc(childRef, {
+                    timerState: 'stopped',
+                    breakTimeSeconds: allowance,
+                    initialBreakTimeSeconds: allowance,
+                    dailyAllowanceSeconds: allowance,
+                    timerStartTime: null,
+                    lastResetDate: getTodayDateString()
+                });
+            }
+
+            async function removeChild(childId) {
                 const childRef = doc(db, childrenCollectionPath, childId);
                 await deleteDoc(childRef);
             }
 
             timersContainer.addEventListener('click', e => {
-                const childId = e.target.closest('.child-card')?.dataset.childId;
+                const card = e.target.closest('.child-card');
+                const childId = card?.dataset.childId;
                 if (!childId) return;
 
-                if (e.target.id.startsWith('start-pause-')) {
+                // Adjust Time link - gate with PIN
+                const adjustLink = e.target.closest('a.adjust-session-link');
+                if (adjustLink) {
+                    e.preventDefault();
+                    const targetHref = adjustLink.href;
+                    requireParentalPin(() => {
+                        window.location.href = targetHref;
+                    }, 'Enter PIN to adjust session time');
+                    return;
+                }
+
+                if (e.target.id.startsWith('start-pause-') || e.target.closest('.kid-timer-btn')) {
+                    // Kids can start and pause their active session without PIN
                     const child = childrenData.find(c => c.id === childId);
                     if (child.timerState === 'running') {
                         pauseTimer(childId);
                     } else {
                         startTimer(childId);
                     }
+                } else if (e.target.id.startsWith('npag-reset-') || e.target.classList.contains('npag-reset-btn')) {
+                    requireParentalPin(() => {
+                        resetChildToNPAG(childId);
+                    }, 'Enter PIN to reset to NPAG cap');
                 } else if (e.target.id.startsWith('reset-')) {
-                    resetTimer(childId);
+                    requireParentalPin(() => {
+                        resetTimer(childId);
+                    }, 'Enter PIN to reset timer');
                 } else if (e.target.classList.contains('camera-btn-card')) {
                     openCamera(childId);
                 } else if (e.target.classList.contains('remove-btn-card')) {
                     const child = childrenData.find(c => c.id === childId);
-                    showConfirmModal('Remove Child?', `Are you sure you want to remove ${child.name}? This action cannot be undone.`, () => {
-                        removeChild(childId);
-                    });
+                    requireParentalPin(() => {
+                        showConfirmModal('Remove Child?', `Are you sure you want to remove ${child.name}? This action cannot be undone.`, () => {
+                            removeChild(childId);
+                        });
+                    }, 'Enter PIN to remove child');
                 } else if (e.target.classList.contains('adjust-delta')) {
                     const deltaSeconds = parseInt(e.target.dataset.delta, 10) || 0;
                     if (!deltaSeconds) return;
-                    const child = childrenData.find(c => c.id === childId);
-                    if (!child) return;
-                    const childRef = doc(db, childrenCollectionPath, childId);
-                    let effectiveRemaining = child.breakTimeSeconds;
-                    if (child.timerState === 'running') {
-                        const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
-                        effectiveRemaining = Math.max(0, child.breakTimeSeconds - elapsed);
-                    }
-                    let clamped = deltaSeconds;
-                    if (deltaSeconds < 0 && effectiveRemaining + deltaSeconds < 0) {
-                        clamped = -effectiveRemaining;
-                    }
-                    if (clamped !== 0) {
-                        updateDoc(childRef, { breakTimeSeconds: increment(clamped) });
-                    }
+                    requireParentalPin(() => {
+                        const child = childrenData.find(c => c.id === childId);
+                        if (!child) return;
+                        const childRef = doc(db, childrenCollectionPath, childId);
+                        let effectiveRemaining = child.breakTimeSeconds;
+                        if (child.timerState === 'running') {
+                            const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                            effectiveRemaining = Math.max(0, child.breakTimeSeconds - elapsed);
+                        }
+                        let clamped = deltaSeconds;
+                        if (deltaSeconds < 0 && effectiveRemaining + deltaSeconds < 0) {
+                            clamped = -effectiveRemaining;
+                        }
+                        if (clamped !== 0) {
+                            updateDoc(childRef, { breakTimeSeconds: increment(clamped) });
+                        }
+                    }, 'Enter PIN to adjust session time');
                 } else if (e.target.classList.contains('set-minutes-btn')) {
-                    const card = e.target.closest('.child-card');
                     const input = card.querySelector('.set-minutes-input');
                     const mins = parseInt(input.value, 10);
                     if (isNaN(mins) || mins < 0) return;
-                    const secs = mins * 60;
-                    const childRef = doc(db, childrenCollectionPath, childId);
-                    updateDoc(childRef, { timerState: 'stopped', breakTimeSeconds: secs, initialBreakTimeSeconds: secs, timerStartTime: null });
+                    requireParentalPin(() => {
+                        const secs = mins * 60;
+                        const childRef = doc(db, childrenCollectionPath, childId);
+                        updateDoc(childRef, {
+                            timerState: 'stopped',
+                            breakTimeSeconds: secs,
+                            initialBreakTimeSeconds: secs,
+                            timerStartTime: null
+                        });
+                    }, 'Enter PIN to set timer minutes');
                 }
             });
             
-            addChildBtn.addEventListener('click', async () => {
+            addChildBtn.addEventListener('click', () => {
                 const name = newChildNameInput.value.trim();
                 const age = parseInt(newChildAgeInput.value, 10);
-                if (!name || isNaN(age) || age <= 0) {
-                    alert('Please enter a valid name and a positive age.');
+                if (!name || isNaN(age) || age < 0) {
+                    alert('Please enter a valid name and an age (0 or older).');
                     return;
                 }
-                const timeSecs = 0;
-                await addDoc(collection(db, childrenCollectionPath), {
-                    name: name,
-                    age: age,
-                    initialBreakTimeSeconds: timeSecs,
-                    breakTimeSeconds: timeSecs,
-                    timerState: 'stopped',
-                    timerStartTime: null
-                });
-                newChildNameInput.value = '';
-                newChildAgeInput.value = '';
+                requireParentalPin(async () => {
+                    const timeSecs = getNPAGGuidelineSeconds(age);
+                    await addDoc(collection(db, childrenCollectionPath), {
+                        name: name,
+                        age: age,
+                        dailyAllowanceSeconds: timeSecs,
+                        initialBreakTimeSeconds: timeSecs,
+                        breakTimeSeconds: timeSecs,
+                        timerState: 'stopped',
+                        timerStartTime: null,
+                        lastResetDate: getTodayDateString()
+                    });
+                    newChildNameInput.value = '';
+                    newChildAgeInput.value = '';
+                }, 'Enter PIN to add child');
             });
 
-            bulkSetBtn.addEventListener('click', async () => {
+            if (applyNpagBtn) {
+                applyNpagBtn.addEventListener('click', () => {
+                    requireParentalPin(() => {
+                        showConfirmModal(
+                            'Apply Australian NPAG Guidelines to All?',
+                            'This will reset each child\'s daily allowance based on their age: 2 hours for ages 5–17, 1 hour for ages 2–5, and 0 hours under 2.',
+                            async () => {
+                                const batch = writeBatch(db);
+                                const todayStr = getTodayDateString();
+                                childrenData.forEach(child => {
+                                    const allowance = getNPAGGuidelineSeconds(child.age);
+                                    const childRef = doc(db, childrenCollectionPath, child.id);
+                                    batch.update(childRef, {
+                                        timerState: 'stopped',
+                                        breakTimeSeconds: allowance,
+                                        initialBreakTimeSeconds: allowance,
+                                        dailyAllowanceSeconds: allowance,
+                                        timerStartTime: null,
+                                        lastResetDate: todayStr
+                                    });
+                                });
+                                await batch.commit();
+                            }
+                        );
+                    }, 'Enter PIN to apply NPAG cap');
+                });
+            }
+
+            bulkSetBtn.addEventListener('click', () => {
                 const mins = parseInt(bulkSetInput.value, 10);
                 if (isNaN(mins) || mins < 0) {
                     alert('Enter minutes (0 or more).');
                     return;
                 }
-                const secs = mins * 60;
-                const batch = writeBatch(db);
-                childrenData.forEach(child => {
-                    const childRef = doc(db, childrenCollectionPath, child.id);
-                    batch.update(childRef, {
-                        timerState: 'stopped',
-                        breakTimeSeconds: secs,
-                        initialBreakTimeSeconds: secs,
-                        timerStartTime: null
+                requireParentalPin(async () => {
+                    const secs = mins * 60;
+                    const batch = writeBatch(db);
+                    childrenData.forEach(child => {
+                        const childRef = doc(db, childrenCollectionPath, child.id);
+                        batch.update(childRef, {
+                            timerState: 'stopped',
+                            breakTimeSeconds: secs,
+                            initialBreakTimeSeconds: secs,
+                            timerStartTime: null
+                        });
                     });
-                });
-                await batch.commit();
+                    await batch.commit();
+                }, 'Enter PIN to bulk set timers');
             });
 
             bulkStartBtn.addEventListener('click', async () => {
@@ -476,13 +947,19 @@
             function showModalView(view) {
                 confirmView.style.display = 'none';
                 cameraView.style.display = 'none';
-                document.getElementById(`${view}-view`).style.display = 'block';
+                if (pinView) pinView.style.display = 'none';
+                if (changePinView) changePinView.style.display = 'none';
+                const target = document.getElementById(`${view}-view`);
+                if (target) target.style.display = 'block';
                 modal.classList.add('visible');
             }
 
             function hideModal() {
                 modal.classList.remove('visible');
                 stopCamera();
+                currentPinBuffer = '';
+                pendingPinAction = null;
+                updatePinDots();
             }
 
             function showConfirmModal(title, message, onConfirm) {
@@ -555,26 +1032,94 @@
             document.getElementById('cancel-camera-btn').addEventListener('click', hideModal);
 
             resetAllBtn.addEventListener('click', () => {
-                showConfirmModal('Reset All Session Timers?', 'This will set every child\'s timer to 00:00 and stop them.', async () => {
-                    const batch = writeBatch(db);
-                    childrenData.forEach(child => {
-                        const childRef = doc(db, childrenCollectionPath, child.id);
-                        batch.update(childRef, {
-                            timerState: 'stopped',
-                            breakTimeSeconds: 0,
-                            timerStartTime: null
+                requireParentalPin(() => {
+                    showConfirmModal('Reset All Session Timers?', 'This will set every child\'s timer to 00:00 and stop them.', async () => {
+                        const batch = writeBatch(db);
+                        childrenData.forEach(child => {
+                            const childRef = doc(db, childrenCollectionPath, child.id);
+                            batch.update(childRef, {
+                                timerState: 'stopped',
+                                breakTimeSeconds: 0,
+                                timerStartTime: null
+                            });
                         });
+                        await batch.commit();
                     });
-                    await batch.commit();
+                }, 'Enter PIN to reset all session timers');
+            });
+
+            // Auto-allocation of NPAG durations and daily refresh
+            function applyDailyRolloverIfNeeded(docs) {
+                const todayStr = getTodayDateString();
+                let rolloverBatch = null;
+
+                docs.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const npagAllowance = getNPAGGuidelineSeconds(data.age);
+                    const isNewDay = !data.lastResetDate || data.lastResetDate !== todayStr;
+                    const isAllowanceMismatch = data.dailyAllowanceSeconds !== npagAllowance;
+
+                    if (isNewDay || isAllowanceMismatch) {
+                        if (!rolloverBatch) rolloverBatch = writeBatch(db);
+                        const updateData = {
+                            dailyAllowanceSeconds: npagAllowance,
+                            lastResetDate: todayStr
+                        };
+                        // On a new day, auto-refresh the timers to their full NPAG guideline duration
+                        if (isNewDay) {
+                            updateData.breakTimeSeconds = npagAllowance;
+                            updateData.initialBreakTimeSeconds = npagAllowance;
+                            updateData.timerState = 'stopped';
+                            updateData.timerStartTime = null;
+                        }
+                        rolloverBatch.update(docSnap.ref, updateData);
+                    }
                 });
+
+                if (rolloverBatch) {
+                    rolloverBatch.commit().catch(err => console.error("Error auto-allocating NPAG / daily rollover:", err));
+                }
+            }
+
+            function checkMidnightRollover() {
+                const checkToday = getTodayDateString();
+                if (checkToday !== activeDateStr) {
+                    activeDateStr = checkToday;
+                    if (childrenData.length > 0) {
+                        const batch = writeBatch(db);
+                        childrenData.forEach(child => {
+                            const allowance = getNPAGGuidelineSeconds(child.age);
+                            const childRef = doc(db, childrenCollectionPath, child.id);
+                            batch.update(childRef, {
+                                timerState: 'stopped',
+                                breakTimeSeconds: allowance,
+                                initialBreakTimeSeconds: allowance,
+                                dailyAllowanceSeconds: allowance,
+                                timerStartTime: null,
+                                lastResetDate: checkToday
+                            });
+                        });
+                        batch.commit().catch(err => console.error("Midnight rollover commit error:", err));
+                    }
+                }
+            }
+
+            setInterval(checkMidnightRollover, 30000);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    checkMidnightRollover();
+                }
             });
 
             onSnapshot(collection(db, childrenCollectionPath), (snapshot) => {
+                applyDailyRolloverIfNeeded(snapshot.docs);
+
                 childrenData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 childrenData.sort((a,b) => a.name.localeCompare(b.name));
                 renderTimers();
             });
         });
     </script>
+    <script src="./assets/ios-standalone.js"></script>
 </body>
 </html>

@@ -6,7 +6,10 @@
 
 /* Reset & base */
 *, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; }
+html, body {
+  min-height: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
 body {
   margin: 0;
   font-family: 'Fredoka', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
@@ -15,6 +18,7 @@ body {
     radial-gradient(1000px 600px at 10% -10%, rgba(56, 189, 248, 0.08), transparent 60%),
     radial-gradient(1000px 500px at 100% 0%, rgba(168, 85, 247, 0.10), transparent 60%),
     linear-gradient(180deg, #0b1020 0%, #0a0f1a 60%, #070b12 100%);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 :root {
@@ -38,12 +42,15 @@ body {
   --shadow-sm: 0 8px 18px rgba(0, 0, 0, 0.35);
 }
 
-/* Containers & layout */
+/* Containers & layout with Safe Area Support */
 main {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   padding: clamp(16px, 2.5vw, 28px);
+  padding-bottom: max(clamp(16px, 2.5vw, 28px), env(safe-area-inset-bottom));
+  padding-left: max(clamp(16px, 2.5vw, 28px), env(safe-area-inset-left));
+  padding-right: max(clamp(16px, 2.5vw, 28px), env(safe-area-inset-right));
   gap: clamp(16px, 2vw, 24px);
 }
 
@@ -56,6 +63,9 @@ header {
   color: var(--white-color);
   box-shadow: var(--shadow-md);
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
 }
 
 header h1 {
@@ -261,4 +271,332 @@ footer {
   main { display: grid; grid-template-columns: 3fr 1.2fr; align-items: start; }
 }
 
+/* NPAG Guidelines & Kid-Friendly Controls */
+.npag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 211, 238, 0.15));
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  color: #a5f3fc;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
 
+.quota-container {
+  width: 100%;
+  margin: 10px 0 14px 0;
+  text-align: left;
+}
+
+.quota-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--muted-text);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.quota-percent {
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.quota-progress-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(2, 6, 23, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.quota-progress-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease, background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.quota-progress-fill.status-good {
+  background: linear-gradient(90deg, #10b981, #22c55e);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.quota-progress-fill.status-warning {
+  background: linear-gradient(90deg, #f59e0b, #eab308);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.quota-progress-fill.status-danger {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+/* Kid-Friendly Big Start / Pause Button */
+.kid-timer-btn {
+  font-size: 1.25rem !important;
+  padding: 1rem 1.2rem !important;
+  border-radius: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25) !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.kid-timer-btn:active {
+  transform: scale(0.97) !important;
+}
+
+.kid-timer-btn.running {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3) !important;
+  color: #fff !important;
+}
+
+/* Guideline info widget */
+.guideline-widget {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.8), rgba(15, 23, 42, 0.6));
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 18px;
+  padding: 1.25rem;
+  font-size: 0.92rem;
+  color: var(--text-color);
+}
+
+.guideline-widget h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.05rem;
+}
+
+.guideline-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guideline-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.4);
+  font-size: 0.85rem;
+}
+
+.guideline-pill {
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.pill-green {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.pill-amber {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.pill-red {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Header layout with actions */
+header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0.85rem clamp(1rem, 3vw, 2rem) !important;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Parent Lock Pill */
+.parent-lock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1.5px solid rgba(245, 158, 11, 0.5);
+  color: #fde047;
+  transition: all 0.2s ease;
+}
+
+.parent-lock-pill:hover {
+  background: rgba(245, 158, 11, 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.parent-lock-pill.unlocked {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.55);
+  color: #86efac;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.25);
+}
+
+.parent-lock-pill.unlocked:hover {
+  background: rgba(34, 197, 94, 0.28);
+}
+
+/* PIN Modal & Keypad */
+.pin-dialog {
+  max-width: 360px !important;
+}
+
+.pin-subtitle {
+  color: var(--muted-text);
+  font-size: 0.95rem;
+  margin: -0.5rem 0 1.25rem 0;
+}
+
+.pin-display-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(148, 163, 184, 0.35);
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pin-dot.filled {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+  box-shadow: 0 0 12px var(--primary-color);
+  transform: scale(1.15);
+}
+
+.pin-error-text {
+  color: var(--danger-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-height: 1.2rem;
+  margin-top: 4px;
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 270px;
+  margin: 0 auto;
+}
+
+.pin-key-btn {
+  height: 54px;
+  border-radius: 14px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-family: 'Fredoka', sans-serif;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pin-key-btn:hover {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.pin-key-btn:active {
+  transform: scale(0.94);
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.pin-key-btn.action-key {
+  font-size: 1rem;
+  font-weight: 600;
+  background: rgba(2, 6, 23, 0.5);
+  color: var(--muted-text);
+}
+
+.pin-key-btn.action-key:hover {
+  color: #fff;
+}
+
+/* Shake Animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.shake {
+  animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Locked card controls hint */
+.locked-card-banner {
+  font-size: 0.8rem;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px dashed rgba(245, 158, 11, 0.35);
+  padding: 4px 8px;
+  border-radius: 8px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
