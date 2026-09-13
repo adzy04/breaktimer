@@ -69,13 +69,21 @@
         .action-btn.positive .action-value { background-color: var(--primary-color); }
         .action-btn.negative .action-value { background-color: var(--danger-color); }
         .loader { text-align: center; padding: 2rem; font-size: 1.5rem; color: #777; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.visible { display: flex; }
+        .modal-content { background: var(--white-color); padding: 2rem; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
     </style>
     <link rel="stylesheet" href="./assets/styles.css">
 </head>
 <body>
     <header>
         <h1>Adjust Break Time</h1>
-        <a href="./index.html" class="back-link">← Back to Break Timers</a>
+        <div class="header-actions">
+            <button id="parent-lock-btn" class="parent-lock-pill" title="Parental Controls">
+                <span id="parent-lock-icon">🔒</span> <span id="parent-lock-label">Parent Lock: ON</span>
+            </button>
+            <a href="./index.html" class="back-link">← Back to Break Timers</a>
+        </div>
     </header>
     <main id="main-content" style="display: none;">
         <div class="panel child-info-panel">
@@ -98,6 +106,42 @@
         </div>
     </main>
     <div id="loader" class="loader">Loading Child's Data...</div>
+
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="pin-view" class="pin-dialog" style="display:none;">
+                <h2 id="pin-title">Parental PIN 🔒</h2>
+                <p class="pin-subtitle" id="pin-prompt-text">Enter PIN to edit break time</p>
+                <div class="pin-display-container">
+                    <div class="pin-dots" id="pin-dots">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                    <div class="pin-error-text" id="pin-error-msg"></div>
+                </div>
+                <div class="pin-keypad" id="pin-keypad">
+                    <button type="button" class="pin-key-btn" data-key="1">1</button>
+                    <button type="button" class="pin-key-btn" data-key="2">2</button>
+                    <button type="button" class="pin-key-btn" data-key="3">3</button>
+                    <button type="button" class="pin-key-btn" data-key="4">4</button>
+                    <button type="button" class="pin-key-btn" data-key="5">5</button>
+                    <button type="button" class="pin-key-btn" data-key="6">6</button>
+                    <button type="button" class="pin-key-btn" data-key="7">7</button>
+                    <button type="button" class="pin-key-btn" data-key="8">8</button>
+                    <button type="button" class="pin-key-btn" data-key="9">9</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-clear-btn">Clear</button>
+                    <button type="button" class="pin-key-btn" data-key="0">0</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-backspace-btn">⌫</button>
+                </div>
+                <div style="margin-top: 1.25rem;">
+                    <a href="./index.html" class="button button-secondary" style="width: 100%; display: block; box-sizing: border-box;">Cancel & Return</a>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 0.75rem; margin-bottom: 0;">Default PIN: 1234</p>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -130,6 +174,189 @@
             const currentTimeEl = document.getElementById('current-time');
             const mainContentEl = document.getElementById('main-content');
             const loaderEl = document.getElementById('loader');
+
+            // Parental PIN elements
+            const parentLockBtn = document.getElementById('parent-lock-btn');
+            const parentLockIcon = document.getElementById('parent-lock-icon');
+            const parentLockLabel = document.getElementById('parent-lock-label');
+            const modal = document.getElementById('modal');
+            const pinView = document.getElementById('pin-view');
+            const pinPromptText = document.getElementById('pin-prompt-text');
+            const pinDotsEl = document.getElementById('pin-dots');
+            const pinErrorMsgEl = document.getElementById('pin-error-msg');
+            const pinKeypad = document.getElementById('pin-keypad');
+            const pinClearBtn = document.getElementById('pin-clear-btn');
+            const pinBackspaceBtn = document.getElementById('pin-backspace-btn');
+
+            const AUTH_SESSION_KEY = 'tech_timer_parent_auth';
+            const DEFAULT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // SHA-256 of "1234"
+            const settingsDocRef = doc(db, 'tech-timer', 'settings');
+            let activePinHash = DEFAULT_PIN_HASH;
+
+            async function hashPin(pin) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(pin);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            // Real-time synchronization of Parental PIN across all devices
+            onSnapshot(settingsDocRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data()?.pinHash) {
+                    activePinHash = docSnap.data().pinHash;
+                }
+            });
+
+            function isParentAuthenticated() {
+                return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+            }
+
+            function setParentAuthenticated(authenticated) {
+                if (authenticated) {
+                    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+                } else {
+                    sessionStorage.removeItem(AUTH_SESSION_KEY);
+                }
+                updateLockUI();
+            }
+
+            function updateLockUI() {
+                if (!parentLockBtn) return;
+                if (isParentAuthenticated()) {
+                    parentLockBtn.classList.add('unlocked');
+                    parentLockIcon.textContent = '🔓';
+                    parentLockLabel.textContent = 'Parent Mode: ON';
+                    parentLockBtn.title = 'Parental Controls Unlocked. Click to Lock.';
+                } else {
+                    parentLockBtn.classList.remove('unlocked');
+                    parentLockIcon.textContent = '🔒';
+                    parentLockLabel.textContent = 'Parent Lock: ON';
+                    parentLockBtn.title = 'Parental Controls Locked. Click to Unlock.';
+                }
+            }
+
+            let currentPinBuffer = '';
+            let pendingPinAction = null;
+
+            function updatePinDots() {
+                if (!pinDotsEl) return;
+                const dots = pinDotsEl.querySelectorAll('.pin-dot');
+                dots.forEach((dot, idx) => {
+                    if (idx < currentPinBuffer.length) {
+                        dot.classList.add('filled');
+                    } else {
+                        dot.classList.remove('filled');
+                    }
+                });
+            }
+
+            function handlePinDigit(digit) {
+                if (currentPinBuffer.length >= 4) return;
+                currentPinBuffer += digit;
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+
+                if (currentPinBuffer.length === 4) {
+                    setTimeout(async () => {
+                        const enteredHash = await hashPin(currentPinBuffer);
+                        if (enteredHash === activePinHash) {
+                            setParentAuthenticated(true);
+                            hideModal();
+                            if (typeof pendingPinAction === 'function') {
+                                const action = pendingPinAction;
+                                pendingPinAction = null;
+                                action();
+                            }
+                        } else {
+                            pinErrorMsgEl.textContent = 'Incorrect PIN. Try again.';
+                            pinDotsEl.classList.add('shake');
+                            setTimeout(() => {
+                                pinDotsEl.classList.remove('shake');
+                                currentPinBuffer = '';
+                                updatePinDots();
+                            }, 500);
+                        }
+                    }, 120);
+                }
+            }
+
+            function handlePinBackspace() {
+                if (currentPinBuffer.length > 0) {
+                    currentPinBuffer = currentPinBuffer.slice(0, -1);
+                    pinErrorMsgEl.textContent = '';
+                    updatePinDots();
+                }
+            }
+
+            function handlePinClear() {
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+            }
+
+            function openPinModal(actionCallback, promptText) {
+                pendingPinAction = actionCallback;
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                if (promptText) {
+                    pinPromptText.textContent = promptText;
+                } else {
+                    pinPromptText.textContent = 'Enter PIN to edit break time';
+                }
+                updatePinDots();
+                pinView.style.display = 'block';
+                modal.classList.add('visible');
+            }
+
+            function hideModal() {
+                modal.classList.remove('visible');
+                pinView.style.display = 'none';
+            }
+
+            function requireParentalPin(actionCallback, promptText) {
+                if (isParentAuthenticated()) {
+                    actionCallback();
+                } else {
+                    openPinModal(actionCallback, promptText);
+                }
+            }
+
+            parentLockBtn.addEventListener('click', () => {
+                if (isParentAuthenticated()) {
+                    setParentAuthenticated(false);
+                } else {
+                    openPinModal(() => {}, 'Enter PIN to unlock parent mode');
+                }
+            });
+
+            if (pinKeypad) {
+                pinKeypad.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.pin-key-btn');
+                    if (!btn) return;
+                    const key = btn.dataset.key;
+                    if (key !== undefined) {
+                        handlePinDigit(key);
+                    }
+                });
+            }
+
+            if (pinClearBtn) pinClearBtn.addEventListener('click', handlePinClear);
+            if (pinBackspaceBtn) pinBackspaceBtn.addEventListener('click', handlePinBackspace);
+
+            document.addEventListener('keydown', (e) => {
+                if (modal.classList.contains('visible') && pinView && pinView.style.display !== 'none') {
+                    if (e.key >= '0' && e.key <= '9') {
+                        handlePinDigit(e.key);
+                    } else if (e.key === 'Backspace') {
+                        handlePinBackspace();
+                    } else if (e.key === 'Escape') {
+                        hideModal();
+                    }
+                }
+            });
+
+            updateLockUI();
 
             const BEHAVIOUR_ACTIONS = [
                 { name: "Did chores without asking", timeChangeMinutes: -15, type: 'positive' },
@@ -182,7 +409,11 @@
                         <span>${action.name}</span>
                         <span class="action-value">${valueText} min</span>
                     `;
-                    btn.addEventListener('click', () => handleActionClick(action.timeChangeMinutes * 60));
+                    btn.addEventListener('click', () => {
+                        requireParentalPin(() => {
+                            handleActionClick(action.timeChangeMinutes * 60);
+                        }, 'Enter PIN to adjust break time');
+                    });
                     
                     if(action.type === 'positive') {
                         positiveActionsEl.appendChild(btn);
@@ -230,6 +461,11 @@
 
                         loaderEl.style.display = 'none';
                         mainContentEl.style.display = 'flex';
+
+                        // If not authenticated upon landing on adjust page, prompt for PIN
+                        if (!isParentAuthenticated()) {
+                            openPinModal(() => {}, 'Enter PIN to edit break time');
+                        }
                     } else {
                         loaderEl.textContent = "Error: Child not found.";
                     }

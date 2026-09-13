@@ -307,7 +307,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const firebaseConfig = {
@@ -369,16 +369,27 @@
             const savePinBtn = document.getElementById('save-pin-btn');
             const cancelChangePinBtn = document.getElementById('cancel-change-pin-btn');
 
-            const PIN_STORAGE_KEY = 'tech_timer_parent_pin';
             const AUTH_SESSION_KEY = 'tech_timer_parent_auth';
+            const DEFAULT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // SHA-256 of "1234"
+            const settingsDocRef = doc(db, 'tech-timer', 'settings');
+            let activePinHash = DEFAULT_PIN_HASH;
 
-            function getParentPin() {
-                return localStorage.getItem(PIN_STORAGE_KEY) || '1234';
+            async function hashPin(pin) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(pin);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             }
 
-            function setParentPin(newPin) {
-                localStorage.setItem(PIN_STORAGE_KEY, newPin);
-            }
+            // Real-time synchronization of Parental PIN across all devices
+            onSnapshot(settingsDocRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data()?.pinHash) {
+                    activePinHash = docSnap.data().pinHash;
+                } else {
+                    setDoc(settingsDocRef, { pinHash: DEFAULT_PIN_HASH, updatedAt: Date.now() }, { merge: true }).catch(console.error);
+                }
+            });
 
             function isParentAuthenticated() {
                 return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
@@ -430,8 +441,9 @@
                 updatePinDots();
 
                 if (currentPinBuffer.length === 4) {
-                    setTimeout(() => {
-                        if (currentPinBuffer === getParentPin()) {
+                    setTimeout(async () => {
+                        const enteredHash = await hashPin(currentPinBuffer);
+                        if (enteredHash === activePinHash) {
                             setParentAuthenticated(true);
                             hideModal();
                             if (typeof pendingPinAction === 'function') {
@@ -535,12 +547,13 @@
             }
 
             if (savePinBtn) {
-                savePinBtn.addEventListener('click', () => {
+                savePinBtn.addEventListener('click', async () => {
                     const currentPin = currentPinInput.value.trim();
                     const newPin = newPinInput.value.trim();
                     const confirmPin = confirmPinInput.value.trim();
 
-                    if (currentPin !== getParentPin()) {
+                    const currentHash = await hashPin(currentPin);
+                    if (currentHash !== activePinHash) {
                         changePinErrorMsg.textContent = 'Current PIN is incorrect.';
                         return;
                     }
@@ -553,10 +566,17 @@
                         return;
                     }
 
-                    setParentPin(newPin);
-                    setParentAuthenticated(true);
-                    hideModal();
-                    alert('Parental PIN successfully updated!');
+                    const newHash = await hashPin(newPin);
+                    try {
+                        await setDoc(settingsDocRef, { pinHash: newHash, updatedAt: Date.now() }, { merge: true });
+                        activePinHash = newHash;
+                        setParentAuthenticated(true);
+                        hideModal();
+                        alert('Parental PIN successfully updated across all devices!');
+                    } catch (err) {
+                        console.error("Error updating PIN in database:", err);
+                        changePinErrorMsg.textContent = 'Failed to save PIN to database. Please try again.';
+                    }
                 });
             }
 

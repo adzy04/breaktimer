@@ -159,7 +159,14 @@
     <link rel="stylesheet" href="./assets/styles.css">
 </head>
 <body>
-    <header><h1>Tech Break Timer ⏱️</h1></header>
+    <header>
+        <h1>Tech Break Timer ⏱️</h1>
+        <div class="header-actions">
+            <button id="parent-lock-btn" class="parent-lock-pill" title="Parental Controls">
+                <span id="parent-lock-icon">🔒</span> <span id="parent-lock-label">Parent Lock: ON</span>
+            </button>
+        </div>
+    </header>
 
     <main>
         <div class="main-content">
@@ -182,7 +189,8 @@
                 <p style="color: var(--muted-text); margin: 0.5rem 0 0; font-size: 0.95rem;">New timers start at 00:00 and can be adjusted on each card.</p>
             </div>
             <div class="widget">
-                <h3>Settings</h3>
+                <h3>Settings & Parental Controls</h3>
+                <button id="change-pin-btn" class="button button-secondary" style="margin-bottom: 0.75rem;">🔑 Change Parental PIN</button>
                 <button id="reset-all-btn" class="danger-btn">Reset All Break Timers</button>
             </div>
             <div class="widget">
@@ -218,13 +226,62 @@
                     <button id="cancel-camera-btn" class="button-secondary">Cancel</button>
                 </div>
             </div>
+            <div id="pin-view" class="pin-dialog" style="display:none;">
+                <h2 id="pin-title">Parental PIN 🔒</h2>
+                <p class="pin-subtitle" id="pin-prompt-text">Enter PIN to edit break timers</p>
+                <div class="pin-display-container">
+                    <div class="pin-dots" id="pin-dots">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                    <div class="pin-error-text" id="pin-error-msg"></div>
+                </div>
+                <div class="pin-keypad" id="pin-keypad">
+                    <button type="button" class="pin-key-btn" data-key="1">1</button>
+                    <button type="button" class="pin-key-btn" data-key="2">2</button>
+                    <button type="button" class="pin-key-btn" data-key="3">3</button>
+                    <button type="button" class="pin-key-btn" data-key="4">4</button>
+                    <button type="button" class="pin-key-btn" data-key="5">5</button>
+                    <button type="button" class="pin-key-btn" data-key="6">6</button>
+                    <button type="button" class="pin-key-btn" data-key="7">7</button>
+                    <button type="button" class="pin-key-btn" data-key="8">8</button>
+                    <button type="button" class="pin-key-btn" data-key="9">9</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-clear-btn">Clear</button>
+                    <button type="button" class="pin-key-btn" data-key="0">0</button>
+                    <button type="button" class="pin-key-btn action-key" id="pin-backspace-btn">⌫</button>
+                </div>
+                <div style="margin-top: 1.25rem;">
+                    <button type="button" id="pin-cancel-btn" class="button-secondary" style="width: 100%;">Cancel</button>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 0.75rem; margin-bottom: 0;">Default PIN: 1234</p>
+            </div>
+
+            <div id="change-pin-view" class="pin-dialog" style="display:none;">
+                <h2>Change Parental PIN 🔑</h2>
+                <p class="pin-subtitle">Set a new 4-digit code</p>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; text-align: left;">
+                    <label style="font-size: 0.85rem; color: var(--muted-text);">Current PIN:</label>
+                    <input type="password" id="current-pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••" style="letter-spacing: 6px; font-size: 1.3rem; text-align: center;">
+                    <label style="font-size: 0.85rem; color: var(--muted-text);">New 4-Digit PIN:</label>
+                    <input type="password" id="new-pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••" style="letter-spacing: 6px; font-size: 1.3rem; text-align: center;">
+                    <label style="font-size: 0.85rem; color: var(--muted-text);">Confirm New PIN:</label>
+                    <input type="password" id="confirm-pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••" style="letter-spacing: 6px; font-size: 1.3rem; text-align: center;">
+                    <div class="pin-error-text" id="change-pin-error-msg" style="text-align: center;"></div>
+                </div>
+                <div class="confirm-controls">
+                    <button type="button" id="save-pin-btn" class="button primary-btn">Save New PIN</button>
+                    <button type="button" id="cancel-change-pin-btn" class="button-secondary">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const firebaseConfig = {
@@ -264,6 +321,243 @@
             const canvasEl = document.getElementById('photo-canvas');
             const switchCameraBtn = document.getElementById('switch-camera-btn');
 
+            // Parental PIN elements
+            const parentLockBtn = document.getElementById('parent-lock-btn');
+            const parentLockIcon = document.getElementById('parent-lock-icon');
+            const parentLockLabel = document.getElementById('parent-lock-label');
+            const pinView = document.getElementById('pin-view');
+            const changePinView = document.getElementById('change-pin-view');
+            const pinPromptText = document.getElementById('pin-prompt-text');
+            const pinDotsEl = document.getElementById('pin-dots');
+            const pinErrorMsgEl = document.getElementById('pin-error-msg');
+            const pinKeypad = document.getElementById('pin-keypad');
+            const pinClearBtn = document.getElementById('pin-clear-btn');
+            const pinBackspaceBtn = document.getElementById('pin-backspace-btn');
+            const pinCancelBtn = document.getElementById('pin-cancel-btn');
+            const changePinBtn = document.getElementById('change-pin-btn');
+            const currentPinInput = document.getElementById('current-pin-input');
+            const newPinInput = document.getElementById('new-pin-input');
+            const confirmPinInput = document.getElementById('confirm-pin-input');
+            const changePinErrorMsg = document.getElementById('change-pin-error-msg');
+            const savePinBtn = document.getElementById('save-pin-btn');
+            const cancelChangePinBtn = document.getElementById('cancel-change-pin-btn');
+
+            const AUTH_SESSION_KEY = 'tech_timer_parent_auth';
+            const DEFAULT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // SHA-256 of "1234"
+            const settingsDocRef = doc(db, 'tech-timer', 'settings');
+            let activePinHash = DEFAULT_PIN_HASH;
+
+            async function hashPin(pin) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(pin);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            // Real-time synchronization of Parental PIN across all devices
+            onSnapshot(settingsDocRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data()?.pinHash) {
+                    activePinHash = docSnap.data().pinHash;
+                } else {
+                    setDoc(settingsDocRef, { pinHash: DEFAULT_PIN_HASH, updatedAt: Date.now() }, { merge: true }).catch(console.error);
+                }
+            });
+
+            function isParentAuthenticated() {
+                return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+            }
+
+            function setParentAuthenticated(authenticated) {
+                if (authenticated) {
+                    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+                } else {
+                    sessionStorage.removeItem(AUTH_SESSION_KEY);
+                }
+                updateLockUI();
+            }
+
+            function updateLockUI() {
+                if (!parentLockBtn) return;
+                if (isParentAuthenticated()) {
+                    parentLockBtn.classList.add('unlocked');
+                    parentLockIcon.textContent = '🔓';
+                    parentLockLabel.textContent = 'Parent Mode: ON';
+                    parentLockBtn.title = 'Parental Controls Unlocked. Click to Lock.';
+                } else {
+                    parentLockBtn.classList.remove('unlocked');
+                    parentLockIcon.textContent = '🔒';
+                    parentLockLabel.textContent = 'Parent Lock: ON';
+                    parentLockBtn.title = 'Parental Controls Locked. Click to Unlock.';
+                }
+            }
+
+            let currentPinBuffer = '';
+            let pendingPinAction = null;
+
+            function updatePinDots() {
+                if (!pinDotsEl) return;
+                const dots = pinDotsEl.querySelectorAll('.pin-dot');
+                dots.forEach((dot, idx) => {
+                    if (idx < currentPinBuffer.length) {
+                        dot.classList.add('filled');
+                    } else {
+                        dot.classList.remove('filled');
+                    }
+                });
+            }
+
+            function handlePinDigit(digit) {
+                if (currentPinBuffer.length >= 4) return;
+                currentPinBuffer += digit;
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+
+                if (currentPinBuffer.length === 4) {
+                    setTimeout(async () => {
+                        const enteredHash = await hashPin(currentPinBuffer);
+                        if (enteredHash === activePinHash) {
+                            setParentAuthenticated(true);
+                            hideModal();
+                            if (typeof pendingPinAction === 'function') {
+                                const action = pendingPinAction;
+                                pendingPinAction = null;
+                                action();
+                            }
+                        } else {
+                            pinErrorMsgEl.textContent = 'Incorrect PIN. Try again.';
+                            pinDotsEl.classList.add('shake');
+                            setTimeout(() => {
+                                pinDotsEl.classList.remove('shake');
+                                currentPinBuffer = '';
+                                updatePinDots();
+                            }, 500);
+                        }
+                    }, 120);
+                }
+            }
+
+            function handlePinBackspace() {
+                if (currentPinBuffer.length > 0) {
+                    currentPinBuffer = currentPinBuffer.slice(0, -1);
+                    pinErrorMsgEl.textContent = '';
+                    updatePinDots();
+                }
+            }
+
+            function handlePinClear() {
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                updatePinDots();
+            }
+
+            function openPinModal(actionCallback, promptText) {
+                pendingPinAction = actionCallback;
+                currentPinBuffer = '';
+                pinErrorMsgEl.textContent = '';
+                if (promptText) {
+                    pinPromptText.textContent = promptText;
+                } else {
+                    pinPromptText.textContent = 'Enter PIN to edit break timers';
+                }
+                updatePinDots();
+                showModalView('pin');
+            }
+
+            function requireParentalPin(actionCallback, promptText) {
+                if (isParentAuthenticated()) {
+                    actionCallback();
+                } else {
+                    openPinModal(actionCallback, promptText);
+                }
+            }
+
+            parentLockBtn.addEventListener('click', () => {
+                if (isParentAuthenticated()) {
+                    setParentAuthenticated(false);
+                } else {
+                    openPinModal(() => {}, 'Enter PIN to unlock parent mode');
+                }
+            });
+
+            if (pinKeypad) {
+                pinKeypad.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.pin-key-btn');
+                    if (!btn) return;
+                    const key = btn.dataset.key;
+                    if (key !== undefined) {
+                        handlePinDigit(key);
+                    }
+                });
+            }
+
+            if (pinClearBtn) pinClearBtn.addEventListener('click', handlePinClear);
+            if (pinBackspaceBtn) pinBackspaceBtn.addEventListener('click', handlePinBackspace);
+            if (pinCancelBtn) pinCancelBtn.addEventListener('click', hideModal);
+
+            document.addEventListener('keydown', (e) => {
+                if (modal.classList.contains('visible') && pinView && pinView.style.display !== 'none') {
+                    if (e.key >= '0' && e.key <= '9') {
+                        handlePinDigit(e.key);
+                    } else if (e.key === 'Backspace') {
+                        handlePinBackspace();
+                    } else if (e.key === 'Escape') {
+                        hideModal();
+                    }
+                }
+            });
+
+            if (changePinBtn) {
+                changePinBtn.addEventListener('click', () => {
+                    requireParentalPin(() => {
+                        currentPinInput.value = '';
+                        newPinInput.value = '';
+                        confirmPinInput.value = '';
+                        changePinErrorMsg.textContent = '';
+                        showModalView('change-pin');
+                    }, 'Enter PIN to change parental settings');
+                });
+            }
+
+            if (savePinBtn) {
+                savePinBtn.addEventListener('click', async () => {
+                    const currentPin = currentPinInput.value.trim();
+                    const newPin = newPinInput.value.trim();
+                    const confirmPin = confirmPinInput.value.trim();
+
+                    const currentHash = await hashPin(currentPin);
+                    if (currentHash !== activePinHash) {
+                        changePinErrorMsg.textContent = 'Current PIN is incorrect.';
+                        return;
+                    }
+                    if (!/^\d{4}$/.test(newPin)) {
+                        changePinErrorMsg.textContent = 'New PIN must be exactly 4 digits.';
+                        return;
+                    }
+                    if (newPin !== confirmPin) {
+                        changePinErrorMsg.textContent = 'New PINs do not match.';
+                        return;
+                    }
+
+                    const newHash = await hashPin(newPin);
+                    try {
+                        await setDoc(settingsDocRef, { pinHash: newHash, updatedAt: Date.now() }, { merge: true });
+                        activePinHash = newHash;
+                        setParentAuthenticated(true);
+                        hideModal();
+                        alert('Parental PIN successfully updated across all devices!');
+                    } catch (err) {
+                        console.error("Error updating PIN in database:", err);
+                        changePinErrorMsg.textContent = 'Failed to save PIN to database. Please try again.';
+                    }
+                });
+            }
+
+            if (cancelChangePinBtn) cancelChangePinBtn.addEventListener('click', hideModal);
+
+            // Initialize lock UI state
+            updateLockUI();
+
             function formatTime(totalSeconds) {
                 if (totalSeconds < 0) totalSeconds = 0;
                 const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
@@ -290,8 +584,8 @@
                     
                     card.innerHTML = `
                         <div>
-                            <button class="card-icon-btn remove-btn-card" data-child-id="${child.id}">❌</button>
-                            <button class="card-icon-btn camera-btn-card" data-child-id="${child.id}">📷</button>
+                            <button class="card-icon-btn remove-btn-card" data-child-id="${child.id}" title="Remove Child">❌</button>
+                            <button class="card-icon-btn camera-btn-card" data-child-id="${child.id}" title="Take Photo">📷</button>
                             ${photoEl}
                             <div class="child-name">${child.name}</div>
                             <div class="child-age">Age: ${child.age || 'N/A'}</div>
@@ -299,7 +593,7 @@
                         </div>
                         <div class="card-controls">
                             <button class="button primary-btn" id="start-pause-${child.id}">${child.timerState === 'running' ? 'Pause' : 'Start'}</button>
-                            <a href="./adjust_time.html?childId=${child.id}" class="button-link button-secondary">Adjust Time</a>
+                            <a href="./adjust_time.html?childId=${child.id}" class="button-link button-secondary adjust-link-btn">Adjust Time</a>
                             <button class="button-secondary" id="reset-${child.id}">Reset</button>
                             <div class="adjust-controls">
                                 <button class="button-secondary adjust-delta" data-delta="-300">-5m</button>
@@ -387,6 +681,21 @@
                 const childId = e.target.closest('.child-card')?.dataset.childId;
                 if (!childId) return;
 
+                // Adjust Time link clicked
+                const adjustLink = e.target.closest('.adjust-link-btn');
+                if (adjustLink) {
+                    if (!isParentAuthenticated()) {
+                        e.preventDefault();
+                        const targetHref = adjustLink.href;
+                        openPinModal(() => {
+                            window.location.href = targetHref;
+                        }, 'Enter PIN to adjust break time & behaviour');
+                        return;
+                    }
+                    return;
+                }
+
+                // Child actions (unlocked)
                 if (e.target.id.startsWith('start-pause-')) {
                     const child = childrenData.find(c => c.id === childId);
                     if (child.timerState === 'running') {
@@ -394,82 +703,96 @@
                     } else {
                         startTimer(childId);
                     }
-                } else if (e.target.id.startsWith('reset-')) {
-                    resetTimer(childId);
                 } else if (e.target.classList.contains('camera-btn-card')) {
                     openCamera(childId);
+                } 
+                // Parent-protected actions
+                else if (e.target.id.startsWith('reset-')) {
+                    requireParentalPin(() => {
+                        resetTimer(childId);
+                    }, 'Enter PIN to reset break timer');
                 } else if (e.target.classList.contains('remove-btn-card')) {
-                    const child = childrenData.find(c => c.id === childId);
-                    showConfirmModal('Remove Child?', `Are you sure you want to remove ${child.name}? This action cannot be undone.`, () => {
-                        removeChild(childId);
-                    });
+                    requireParentalPin(() => {
+                        const child = childrenData.find(c => c.id === childId);
+                        showConfirmModal('Remove Child?', `Are you sure you want to remove ${child.name}? This action cannot be undone.`, () => {
+                            removeChild(childId);
+                        });
+                    }, 'Enter PIN to remove child');
                 } else if (e.target.classList.contains('adjust-delta')) {
                     const deltaSeconds = parseInt(e.target.dataset.delta, 10) || 0;
                     if (!deltaSeconds) return;
-                    const child = childrenData.find(c => c.id === childId);
-                    if (!child) return;
-                    const childRef = doc(db, childrenCollectionPath, childId);
-                    let effectiveRemaining = child.breakTimeSeconds;
-                    if (child.timerState === 'running') {
-                        const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
-                        effectiveRemaining = Math.max(0, child.breakTimeSeconds - elapsed);
-                    }
-                    let clamped = deltaSeconds;
-                    if (deltaSeconds < 0 && effectiveRemaining + deltaSeconds < 0) {
-                        clamped = -effectiveRemaining;
-                    }
-                    if (clamped !== 0) {
-                        updateDoc(childRef, { breakTimeSeconds: increment(clamped) });
-                    }
+                    requireParentalPin(() => {
+                        const child = childrenData.find(c => c.id === childId);
+                        if (!child) return;
+                        const childRef = doc(db, childrenCollectionPath, childId);
+                        let effectiveRemaining = child.breakTimeSeconds;
+                        if (child.timerState === 'running') {
+                            const elapsed = Math.floor((Date.now() - child.timerStartTime) / 1000);
+                            effectiveRemaining = Math.max(0, child.breakTimeSeconds - elapsed);
+                        }
+                        let clamped = deltaSeconds;
+                        if (deltaSeconds < 0 && effectiveRemaining + deltaSeconds < 0) {
+                            clamped = -effectiveRemaining;
+                        }
+                        if (clamped !== 0) {
+                            updateDoc(childRef, { breakTimeSeconds: increment(clamped) });
+                        }
+                    }, 'Enter PIN to adjust break time');
                 } else if (e.target.classList.contains('set-minutes-btn')) {
                     const card = e.target.closest('.child-card');
                     const input = card.querySelector('.set-minutes-input');
                     const mins = parseInt(input.value, 10);
                     if (isNaN(mins) || mins < 0) return;
-                    const secs = mins * 60;
-                    const childRef = doc(db, childrenCollectionPath, childId);
-                    updateDoc(childRef, { timerState: 'stopped', breakTimeSeconds: secs, initialBreakTimeSeconds: secs, timerStartTime: null });
+                    requireParentalPin(() => {
+                        const secs = mins * 60;
+                        const childRef = doc(db, childrenCollectionPath, childId);
+                        updateDoc(childRef, { timerState: 'stopped', breakTimeSeconds: secs, initialBreakTimeSeconds: secs, timerStartTime: null });
+                    }, 'Enter PIN to set break time');
                 }
             });
             
-            addChildBtn.addEventListener('click', async () => {
+            addChildBtn.addEventListener('click', () => {
                 const name = newChildNameInput.value.trim();
                 const age = parseInt(newChildAgeInput.value, 10);
                 if (!name || isNaN(age) || age <= 0) {
                     alert('Please enter a valid name and a positive age.');
                     return;
                 }
-                const timeSecs = 0;
-                await addDoc(collection(db, childrenCollectionPath), {
-                    name: name,
-                    age: age,
-                    initialBreakTimeSeconds: timeSecs,
-                    breakTimeSeconds: timeSecs,
-                    timerState: 'stopped',
-                    timerStartTime: null
-                });
-                newChildNameInput.value = '';
-                newChildAgeInput.value = '';
+                requireParentalPin(async () => {
+                    const timeSecs = 0;
+                    await addDoc(collection(db, childrenCollectionPath), {
+                        name: name,
+                        age: age,
+                        initialBreakTimeSeconds: timeSecs,
+                        breakTimeSeconds: timeSecs,
+                        timerState: 'stopped',
+                        timerStartTime: null
+                    });
+                    newChildNameInput.value = '';
+                    newChildAgeInput.value = '';
+                }, 'Enter PIN to add child');
             });
 
-            bulkSetBtn.addEventListener('click', async () => {
+            bulkSetBtn.addEventListener('click', () => {
                 const mins = parseInt(bulkSetInput.value, 10);
                 if (isNaN(mins) || mins < 0) {
                     alert('Enter minutes (0 or more).');
                     return;
                 }
-                const secs = mins * 60;
-                const batch = writeBatch(db);
-                childrenData.forEach(child => {
-                    const childRef = doc(db, childrenCollectionPath, child.id);
-                    batch.update(childRef, {
-                        timerState: 'stopped',
-                        breakTimeSeconds: secs,
-                        initialBreakTimeSeconds: secs,
-                        timerStartTime: null
+                requireParentalPin(async () => {
+                    const secs = mins * 60;
+                    const batch = writeBatch(db);
+                    childrenData.forEach(child => {
+                        const childRef = doc(db, childrenCollectionPath, child.id);
+                        batch.update(childRef, {
+                            timerState: 'stopped',
+                            breakTimeSeconds: secs,
+                            initialBreakTimeSeconds: secs,
+                            timerStartTime: null
+                        });
                     });
-                });
-                await batch.commit();
+                    await batch.commit();
+                }, 'Enter PIN to bulk set break timers');
             });
 
             bulkStartBtn.addEventListener('click', async () => {
@@ -491,6 +814,8 @@
             function showModalView(view) {
                 confirmView.style.display = 'none';
                 cameraView.style.display = 'none';
+                if (pinView) pinView.style.display = 'none';
+                if (changePinView) changePinView.style.display = 'none';
                 document.getElementById(`${view}-view`).style.display = 'block';
                 modal.classList.add('visible');
             }
@@ -570,18 +895,20 @@
             document.getElementById('cancel-camera-btn').addEventListener('click', hideModal);
 
             resetAllBtn.addEventListener('click', () => {
-                showConfirmModal('Reset All Break Timers?', 'This will set every child\'s timer to 00:00 and stop them.', async () => {
-                    const batch = writeBatch(db);
-                    childrenData.forEach(child => {
-                        const childRef = doc(db, childrenCollectionPath, child.id);
-                        batch.update(childRef, {
-                            timerState: 'stopped',
-                            breakTimeSeconds: 0,
-                            timerStartTime: null
+                requireParentalPin(() => {
+                    showConfirmModal('Reset All Break Timers?', 'This will set every child\'s timer to 00:00 and stop them.', async () => {
+                        const batch = writeBatch(db);
+                        childrenData.forEach(child => {
+                            const childRef = doc(db, childrenCollectionPath, child.id);
+                            batch.update(childRef, {
+                                timerState: 'stopped',
+                                breakTimeSeconds: 0,
+                                timerStartTime: null
+                            });
                         });
+                        await batch.commit();
                     });
-                    await batch.commit();
-                });
+                }, 'Enter PIN to reset all break timers');
             });
 
             onSnapshot(collection(db, childrenCollectionPath), (snapshot) => {

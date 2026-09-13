@@ -195,12 +195,25 @@
             const pinClearBtn = document.getElementById('pin-clear-btn');
             const pinBackspaceBtn = document.getElementById('pin-backspace-btn');
 
-            const PIN_STORAGE_KEY = 'tech_timer_parent_pin';
             const AUTH_SESSION_KEY = 'tech_timer_parent_auth';
+            const DEFAULT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // SHA-256 of "1234"
+            const settingsDocRef = doc(db, 'tech-timer', 'settings');
+            let activePinHash = DEFAULT_PIN_HASH;
 
-            function getParentPin() {
-                return localStorage.getItem(PIN_STORAGE_KEY) || '1234';
+            async function hashPin(pin) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(pin);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             }
+
+            // Real-time synchronization of Parental PIN across all devices
+            onSnapshot(settingsDocRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data()?.pinHash) {
+                    activePinHash = docSnap.data().pinHash;
+                }
+            });
 
             function isParentAuthenticated() {
                 return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
@@ -260,8 +273,9 @@
                 updatePinDots();
 
                 if (currentPinBuffer.length === 4) {
-                    setTimeout(() => {
-                        if (currentPinBuffer === getParentPin()) {
+                    setTimeout(async () => {
+                        const enteredHash = await hashPin(currentPinBuffer);
+                        if (enteredHash === activePinHash) {
                             setParentAuthenticated(true);
                             hidePinModal();
                             if (typeof pendingPinAction === 'function') {
